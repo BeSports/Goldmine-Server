@@ -279,6 +279,21 @@ optional
 **Description**:
 An extend makes it possible to fetch data that is connect with each other. You can make a comparison with JOINs in SQL. Just like multiple main queries you can have multiple extends.
 
+Example for a full extend:
+
+```javascript
+extend: [
+  {
+    collection: {type: Types.VERTEX, name: 'user'},
+    target: 'author',
+    relation: 'AuthorOf',
+    params: [
+      ['username', '<>', ':username']
+    ]
+  }
+]
+```
+
 #### target
 
 **Value:** 
