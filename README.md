@@ -100,7 +100,7 @@ $ npm start
 
 As you can see it is very easy to setup a GoldmineJS server. The example we've build is a very basic one. It is possible to build much more complex publications than the one we covered. You can find examples of different publications throughout this file.
 
-You can find the complete example on ...
+You can find the complete example on [https://github.com/BeSports/Goldmine-Demo](https://github.com/BeSports/Goldmine-Demo).
 
 ## Publications
 
