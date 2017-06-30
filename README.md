@@ -23,13 +23,13 @@ We're going to build a GoldmineJS server which will serve the demo of the client
 Clone the project to your local environment.
 
 ```
-$ git clone https://gitlab.kayzr.com/ruben/gold-mine-js-web-socket.git
+$ git clone https://github.com/BeSports/Goldmine-Server.git
 ```
 
 After you've cloned the project navigate to the folder and install all packages.
 
 ```
-$ cd gold-mine-js-web-socket
+$ cd Goldmine-Server
 $ npm install
 ```
 
@@ -63,11 +63,11 @@ The collections object will be used as an enum. The only two properties that are
 
 **TIP**
 
-If you want to know how the queries that are build for each subscription looks like you can enable debugging by changing the *debug* property in the config.
+If you want to know how the queries that are build for each subscription look like you can enable debugging by changing the *debug* property in the config.
 
 ### Publication
 
-Now the configuration of our server is done there's on thing left to do. We need some publications. Publications define what we want from the database in a generic way. Clients can subscribe on these publications.
+Now the configuration of our server is done, there's one thing left to do. We need some publications. Publications define what we want from the database in a generic way. Clients can subscribe to these publications.
 
 The publication we're going to build will fetch a creature based on a unique name. Publications can be found in the folder *src/publications*. The file *all.js* must contain all publications, feel free to create separate files for a cleaner structure, but these files must all be collected in *all.js*.
 
