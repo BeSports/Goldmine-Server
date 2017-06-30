@@ -38,15 +38,14 @@ export default class OrientDBQueryResolver {
     let result = [];
     _.forEach(response, obj => {
       let formattedObject = {};
-
       // Add to cache
-      cache.add(obj['@rid'].toString());
+      cache.add(obj['_id'].toString());
 
       _.forEach(obj, (value, key) => {
         if (key.startsWith('_') || key.startsWith('in_') || key.startsWith('out_') || !key.includes('_')) {
-          formattedObject[key] = key.startsWith('@rid') ? value.toString() : value;
+          formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
-          if (key.startsWith('@rid')) {
+          if (key.startsWith('_id')) {
             cache.add(value.toString());
           }
         } else if (_.size(template.extend) > 0) {
@@ -73,9 +72,9 @@ export default class OrientDBQueryResolver {
                 formattedObject[target][key] = {};
               }
 
-              formattedObject[target][key][property] = property.startsWith('@rid') ? item.toString() : item;
+              formattedObject[target][key][property] = property.startsWith('_id') ? item.toString() : item;
 
-              if (property.startsWith('@rid')) {
+              if (property.startsWith('_id')) {
                 cache.add(item.toString());
               }
             });
@@ -91,9 +90,9 @@ export default class OrientDBQueryResolver {
                 tempValue = value[0];
               }
 
-              formattedObject[target][property] = property.startsWith('@rid') ? tempValue.toString() : tempValue;
+              formattedObject[target][property] = property.startsWith('_id') ? tempValue.toString() : tempValue;
 
-              if (property.startsWith('@rid')) {
+              if (property.startsWith('_id')) {
                 cache.add(tempValue.toString());
               }
             } else {

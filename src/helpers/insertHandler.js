@@ -19,7 +19,7 @@ export default function insertHandler(io, db, template, collection, rooms, inser
     return;
   }
 
-  const rid = extractRid(insertedObject);
+  const id = insertedObject.content['_id'];
   const queries = new Builder([template]).build();
   const resolver = new Resolver(db, [template], queries);
 
@@ -29,9 +29,10 @@ export default function insertHandler(io, db, template, collection, rooms, inser
     resolver
       .resolve(params, cache[room])
       .then(result => {
-        let data = _.find(result[0].data, {'@rid': rid});
+        let data = _.find(result[0].data, {'_id': id});
 
         if (data !== undefined) {
+          cache[room].add(id);
           emitResults(
             io,
             room,

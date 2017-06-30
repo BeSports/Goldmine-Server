@@ -47,10 +47,10 @@ export function extractParams(publicationNameWithParams) {
 }
 
 export function emitResults(io, subName, type, collectionName, target, data, fields) {
-  const rid = data['@rid'];
+  const rid = data['_id'];
 
   data = extractFields(fields, data);
-  data['@rid'] = rid;
+  data['_id'] = rid;
 
   io.sockets.to(subName).emit(subName, {
     type: type,
@@ -67,7 +67,7 @@ export function extractFields(fields, data) {
 
   let result = {};
 
-  result['@rid'] = data['@rid'];
+  result['_id'] = data['_id'];
 
   _.forEach(fields, field => {
     result[field] = data[field];
