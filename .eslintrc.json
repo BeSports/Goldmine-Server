@@ -1,0 +1,27 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 8,
+    "sourceType": "module"
+  },
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "comma-dangle": 0,
+    "no-trailing-spaces": 0,
+    "arrow-body-style": 0,
+    "no-nested-ternary": 0,
+    "no-underscore-dangle": 0,
+    "linebreak-style": 0,
+    "import/extensions": 0,
+    "import/no-extraneous-dependencies": 0,
+    "jsx-a11y/no-static-element-interactions": 0,
+    "no-confusing-arrow": 0,
+    "semi": 2
+  },
+  "globals": {
+    "global": false,
+    "module": false
+  }
+}

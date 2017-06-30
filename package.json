@@ -1,0 +1,42 @@
+{
+  "name": "goldmine-js-server",
+  "version": "0.1.0",
+  "description": "A framework for building reactive web apps.",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --exec \"babel-node\" index.js --presets \"es2015\" --stack-size=2000"
+  },
+  "keywords": [
+    "goldmine",
+    "reactive",
+    "realtime"
+  ],
+  "contributors": [
+    {
+      "name": "Jasper Dansercoer",
+      "email": "jasper@besports.be",
+      "url": "http://www.jdansercoer.be/"
+    },
+    {
+      "name": "Ruben Vermeulen",
+      "email": "hello@rubenvermeulen.be",
+      "url": "https://rubenvermeulen.be/"
+    }
+  ],
+  "dependencies": {
+    "express": "^4.15.2",
+    "lodash": "^4.17.4",
+    "orientjs": "^2.2.5",
+    "pluralize": "^5.0.0",
+    "socket.io": "^2.0.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.0",
+    "babel-preset-es2015": "^6.24.0",
+    "eslint": "^3.19.0",
+    "eslint-plugin-import": "^2.3.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-node": "^5.0.0",
+    "nodemon": "^1.11.0"
+  }
+}
