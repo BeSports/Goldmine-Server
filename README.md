@@ -77,7 +77,7 @@ When you create a new publication you have to give it a name like in this exampl
 {
   getCreatureWithName: [
     {
-      collectionName: pluralize(CollectionTypes.CREATURE.name),
+      collectionName: 'creatures',
       collection: CollectionTypes.CREATURE,
       fields: ['name', 'born', 'gender', 'race', 'gatewaylink'],
       params: [
