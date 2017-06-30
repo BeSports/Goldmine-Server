@@ -75,7 +75,7 @@ export default class OrientDBQueryBuilder {
     if (template.target !== undefined) {
       const edge = this.buildEdge(template.relation, template.direction);
 
-      res += `${edge}["@rid"] AS \`${template.target}_@rid\``;
+      res += `${edge}["_id"] AS \`${template.target}__id\``;
 
       _.forEach(template.fields, field => {
         let tempEdge = edge;
@@ -92,7 +92,7 @@ export default class OrientDBQueryBuilder {
       const size = _.size(template.fields);
 
       if (size !== 0) {
-        res += `@rid`;
+        res += `_id`;
 
         _.forEach(template.fields, field => {
           if (template.collection.type === Types.EDGE) {

@@ -63,7 +63,7 @@ db.query('SELECT expand(classes) FROM metadata:schema')
 // Keeps connection open with OrientDB.
 
 setInterval(() => {
-  db.query('SELECT @rid FROM V LIMIT 1')
+  db.query('SELECT _id FROM V LIMIT 1')
     .catch(() => {
       console.log('Couldn\'t keep database connection alive!');
     });
@@ -124,6 +124,7 @@ io.sockets.on('connection', socket => {
         };
 
         // Send data to client who subscribed.
+        console.log('emitting');
         socket.emit(payload.publicationNameWithParams, responsePayload);
       });
 
