@@ -345,7 +345,7 @@ You can order the results using the *orderBy* property. You can't order on data 
 
 // Short version
 [
-  'field,
+  'field',
   {field: 'field', direction: 'desc'}
 ]
 ```
