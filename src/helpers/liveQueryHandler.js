@@ -20,10 +20,12 @@ export default function(io, db, collectionType, publications, cache, insertCache
   ) {
     if (template.collection.name === collectionType.name) {
       _.forEach(rooms, roomName => {
+        const id = res.content['_id'];
         const rid = extractRid(res);
 
         let isInInsertCache = false;
 
+        // Insert cache uses RID
         _.forEach(insertCache, obj => {
           if (rid === obj.out) {
             if (res.content['out_' + obj.type] !== undefined) {
@@ -58,8 +60,8 @@ export default function(io, db, collectionType, publications, cache, insertCache
           type = OperationTypes.INSERT;
         }
 
-        if (cache[roomName].has(rid)) {
-          res.content['@rid'] = rid;
+        if (cache[roomName].has(id)) {
+          res.content['_id'] = id;
 
           emitResults(
             io,
@@ -72,7 +74,7 @@ export default function(io, db, collectionType, publications, cache, insertCache
           );
 
           if (type === OperationTypes.DELETE) {
-            cache[roomName].delete(rid);
+            cache[roomName].delete(id);
           }
         }
       });
