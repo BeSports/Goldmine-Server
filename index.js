@@ -3,9 +3,8 @@ import Express from 'express';
 import Server from 'socket.io';
 import _ from 'lodash';
 import db from './src/db/OrientDbConnection';
-import CollectionTypes from './src/enums/CollectionTypes';
 import liveQueryHandler from './src/helpers/liveQueryHandler';
-import {extractPublicationName, extractParams} from './src/helpers/helperFunctions';
+import { extractPublicationName, extractParams } from './src/helpers/helperFunctions';
 import Types from './src/enums/OperationTypes';
 import QueryBuilder from './src/builders/OrientDbQueryBuilder';
 import QueryResolver from './src/resolvers/OrientDbQueryResolver';
@@ -36,26 +35,22 @@ const insertCache = [];
 // which publications the client is subscribed.
 const connections = {};
 
+const collectionTypes = [];
+
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
 
-// Check if collection types are available in the database.
-db.query('SELECT expand(classes) FROM metadata:schema')
-  .then(res => {
-    // For each defined type (collection) create a live query.
-    _.forEach(CollectionTypes, type => {
-      const temp = _.find(res, (obj) => {
-        return obj.name.toLowerCase() === type.name.toLowerCase();
-      });
-
-      if (temp !== undefined) {
-        liveQueryHandler(io, db, type, publications, cache, insertCache);
-      }
-      else {
-        throw new Error(`${type.name} does not exists in the database`);
-      }
-    });
+// Start livequeries for all classes
+db.query('SELECT expand(classes) FROM metadata:schema').then(res => {
+  // For each defined class create a livequery
+  _.forEach(res, obj => {
+    // Only classes that were defined by yourself
+    if (_.size(obj.clusterIds) > 2) {
+      collectionTypes.push(obj.name);
+      liveQueryHandler(io, db, obj.name, publications, cache, insertCache);
+    }
   });
+});
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
@@ -63,10 +58,9 @@ db.query('SELECT expand(classes) FROM metadata:schema')
 // Keeps connection open with OrientDB.
 
 setInterval(() => {
-  db.query('SELECT _id FROM V LIMIT 1')
-    .catch(() => {
-      console.log('Couldn\'t keep database connection alive!');
-    });
+  db.query('SELECT _id FROM V LIMIT 1').catch(() => {
+    console.log("Couldn't keep database connection alive!");
+  });
 }, 60000);
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -185,3 +179,9 @@ io.sockets.on('connection', socket => {
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
+
+const init = () => {
+  console.log('Starting goldminejs server');
+};
+
+module.exports = { init };
