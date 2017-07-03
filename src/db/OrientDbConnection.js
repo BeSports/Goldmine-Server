@@ -1,4 +1,8 @@
 import orientdb from 'orientjs';
-import Config from '../config';
 
-export default new orientdb.ODatabase(Object.assign({useToken: true}, Config.database));
+const OrientDBConnection = (databaseConfig) => {
+  const db = orientdb.ODatabase(Object.assign({useToken: true}, databaseConfig));
+  return db;
+}
+
+export default OrientDBConnection;
