@@ -1,4 +1,4 @@
-/node_modules/
-/.idea/
-/src/config.js
+node_modules/
+.idea/
+build/
 package-lock.json
