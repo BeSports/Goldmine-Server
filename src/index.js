@@ -2,17 +2,17 @@ import http from 'http';
 import Express from 'express';
 import Server from 'socket.io';
 import _ from 'lodash';
-import dbConnector from './src/db/OrientDbConnection';
-import liveQueryHandler from './src/helpers/liveQueryHandler';
-import { extractPublicationName, extractParams } from './src/helpers/helperFunctions';
-import Types from './src/enums/OperationTypes';
-import QueryBuilder from './src/builders/OrientDbQueryBuilder';
-import QueryResolver from './src/resolvers/OrientDbQueryResolver';
+import dbConnector from './db/OrientDbConnection';
+import liveQueryHandler from './helpers/liveQueryHandler';
+import { extractPublicationName, extractParams } from './helpers/helperFunctions';
+import Types from './enums/OperationTypes';
+import QueryBuilder from './builders/OrientDbQueryBuilder';
+import QueryResolver from './resolvers/OrientDbQueryResolver';
 
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server);
-
+let db;
 /**
  * Initializes the Goldminejs server with given config and publications
  * @param config Configuration object for Goldmine-Server
@@ -34,9 +34,27 @@ const io = new Server(server);
 
 //TODO: Validate publications
 //TODO: Validate Config
-const init = ( Config, publications ) => {
-  const db = new dbConnector(config.database);
+const init = (Config, publications) => {
+  global.orientDBConfig = Config.database;
+  db = require('./db/OrientDbConnection');
 
+  if (!db) {
+    setTimeout(() => {
+      if (!db) {
+        console.log('Connection failed');
+      } else {
+        this.startQuerries(Config, publications);
+      }
+    }, 10000);
+  }
+
+  console.log(global.orientDBConfig);
+};
+
+/**
+ * Starts all livequerries and keeps track of socketIo, updates
+ */
+const startQuerries = (Config, publications) => {
   server.listen(Config.port, () => {
     console.log('WEB SOCKET LISTENING ON:', Config.port);
   });

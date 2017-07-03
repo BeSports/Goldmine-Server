@@ -2,9 +2,10 @@
   "name": "goldmine-js-server",
   "version": "0.1.1",
   "description": "A framework for building reactive web apps.",
-  "main": "index.js",
+  "main": "./build/index.js",
   "scripts": {
-    "start": "nodemon --exec \"babel-node\" index.js --presets \"es2015\" --stack-size=2000"
+    "start": "nodemon --exec \"babel-node\" index.js --presets \"es2015\" --stack-size=2000",
+    "build": "babel src -d build"
   },
   "keywords": [
     "goldmine",
@@ -21,17 +22,24 @@
       "name": "Ruben Vermeulen",
       "email": "hello@rubenvermeulen.be",
       "url": "https://rubenvermeulen.be/"
+    },
+    {
+      "name": "Michiel Cuvelier",
+      "email": "michiel@mitchken.com"
     }
   ],
   "dependencies": {
     "express": "^4.15.2",
     "lodash": "^4.17.4",
+    "nan": "^2.6.2",
     "orientjs": "^2.2.5",
     "pluralize": "^5.0.0",
+    "regenerator-runtime": "^0.10.5",
     "socket.io": "^2.0.2"
   },
   "devDependencies": {
-    "babel-cli": "^6.24.0",
+    "babel-cli": "^6.24.1",
+    "babel-preset-env": "^1.5.2",
     "babel-preset-es2015": "^6.24.0",
     "eslint": "^3.19.0",
     "eslint-plugin-import": "^2.3.0",
