@@ -1,5 +1,5 @@
 {
-  "name": "goldmine-js-server",
+  "name": "goldmine-server",
   "version": "0.1.1",
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
@@ -7,11 +7,20 @@
     "start": "nodemon --exec \"babel-node\" index.js --presets \"es2015\" --stack-size=2000",
     "build": "babel src -d build"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BeSports/Goldmine-Server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BeSports/Goldmine-Server/issues"
+  },
   "keywords": [
     "goldmine",
     "reactive",
-    "realtime"
+    "realtime",
+    "OrientDB"
   ],
+  "license": "MIT",
   "contributors": [
     {
       "name": "Jasper Dansercoer",

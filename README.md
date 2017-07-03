@@ -943,3 +943,4 @@ This query can be resolved in two ways because we know that each person can only
 
 - [Jasper Dansercoer](http://www.jdansercoer.be/)
 - [Ruben Vermeulen](https://rubenvermeulen.be/)
+- Michiel Cuvelier
