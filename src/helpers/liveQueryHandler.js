@@ -6,7 +6,7 @@ import insertHandler from './insertHandler';
 import * as pluralize from "pluralize";
 
 export default function(io, db, collectionType, publications, cache, insertCache) {
-  const QUERY = `LIVE SELECT FROM ${collectionType.name}`;
+  const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
 
   const handler = function(
     template,
@@ -18,7 +18,8 @@ export default function(io, db, collectionType, publications, cache, insertCache
     usedInsert,
     target,
   ) {
-    if (template.collection.name === collectionType.name) {
+    console.log('updateing');
+    if (template.collection === _.toLower(collectionType.name)) {
       _.forEach(rooms, roomName => {
         const id = res.content['_id'];
         const rid = extractRid(res);
@@ -196,6 +197,7 @@ export default function(io, db, collectionType, publications, cache, insertCache
           }
         });
 
+        console.log(roomsForPublication);
         _.forEach(publication, template => {
           // Template - root level
           handler(

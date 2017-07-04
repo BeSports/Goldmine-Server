@@ -77,5 +77,5 @@ export function extractFields(fields, data) {
 }
 
 export function getCollectionName(template) {
-  return template.collectionName ? template.collectionName : pluralize(template.collection.name);
+  return template.collectionName ? template.collectionName : pluralize(template.collection);
 }

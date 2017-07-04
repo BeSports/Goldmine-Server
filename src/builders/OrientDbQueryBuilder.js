@@ -27,7 +27,7 @@ export default class OrientDBQueryBuilder {
         selectStmt = this.buildSelectStmt(template);
 
         // from statement
-        fromStmt = template.collection.name;
+        fromStmt = template.collection;
 
         // where statement
         whereStmt = this.buildWhereStmt(template);
