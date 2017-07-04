@@ -1,6 +1,6 @@
 {
   "name": "goldmine-server",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
   "scripts": {
@@ -41,7 +41,7 @@
     "express": "^4.15.2",
     "lodash": "^4.17.4",
     "nan": "^2.6.2",
-    "orientjs": "^2.2.5",
+    "orientjs": "https://github.com/orientechnologies/orientjs#master",
     "pluralize": "^5.0.0",
     "regenerator-runtime": "^0.10.5",
     "socket.io": "^2.0.2"

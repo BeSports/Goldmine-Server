@@ -1,8 +1,7 @@
+import _ from 'lodash';
 import http from 'http';
 import Express from 'express';
 import Server from 'socket.io';
-import _ from 'lodash';
-import dbConnector from './db/OrientDbConnection';
 import liveQueryHandler from './helpers/liveQueryHandler';
 import { extractPublicationName, extractParams } from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
@@ -78,15 +77,24 @@ const startQuerries = function(Config, publications) {
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
-
+  console.log('here');
   // Start livequeries for all classes
   db.query('SELECT expand(classes) FROM metadata:schema').then(res => {
     // For each defined class create a livequery
     _.forEach(res, obj => {
       // Only classes that were defined by yourself
-      if (_.size(obj.clusterIds) > 2) {
-        collectionTypes.push(obj.name);
-        liveQueryHandler(io, db, obj.name, publications, cache, insertCache);
+      if (obj.superClass === 'V') {
+        collectionTypes.push({
+          name: obj.name,
+          type: Types.VERTEX
+        });
+        liveQueryHandler(io, db, obj, publications, cache, insertCache);
+      } else if(obj.superClass === 'E') {
+        collectionTypes.push({
+          name: obj.name,
+          type: Types.EDGE
+        });
+        liveQueryHandler(io, db, obj, publications, cache, insertCache);
       }
     });
   });
