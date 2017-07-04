@@ -34,27 +34,26 @@ let db;
 
 //TODO: Validate publications
 //TODO: Validate Config
-const init = (Config, publications) => {
+const init = function (Config, publications) {
   global.orientDBConfig = Config.database;
-  db = require('./db/OrientDbConnection');
-
+  db = require('./db/OrientDbConnection').default(Config);
   if (!db) {
     setTimeout(() => {
       if (!db) {
         console.log('Connection failed');
       } else {
-        this.startQuerries(Config, publications);
+        startQuerries(Config, publications);
       }
     }, 10000);
   }
+  startQuerries(Config, publications);
 
-  console.log(global.orientDBConfig);
 };
 
 /**
  * Starts all livequerries and keeps track of socketIo, updates
  */
-const startQuerries = (Config, publications) => {
+const startQuerries = function(Config, publications) {
   server.listen(Config.port, () => {
     console.log('WEB SOCKET LISTENING ON:', Config.port);
   });

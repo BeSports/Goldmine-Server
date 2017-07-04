@@ -4,7 +4,6 @@
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
   "scripts": {
-    "start": "nodemon --exec \"babel-node\" index.js --presets \"es2015\" --stack-size=2000",
     "build": "babel src -d build"
   },
   "repository": {
@@ -18,7 +17,8 @@
     "goldmine",
     "reactive",
     "realtime",
-    "OrientDB"
+    "OrientDB",
+    "server"
   ],
   "license": "MIT",
   "contributors": [
