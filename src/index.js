@@ -28,7 +28,7 @@ let db;
 //     name: 'Tolkien-Arda',
 //     username: 'admin',
 //     password: 'admin'
-//   }
+//   },
 // }
 
 //TODO: Validate publications
@@ -206,6 +206,13 @@ const startQuerries = function(Config, publications) {
       }
 
       connections[socket.id].splice(index, 1);
+    });
+
+    // ----------------------------------------------------
+    // ----------------------------------------------------
+
+    socket.on('authenticate', data => {
+      console.log('AUTHENTICATING', data);
     });
 
     // -----------------------------------------------------
