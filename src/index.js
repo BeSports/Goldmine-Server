@@ -28,12 +28,12 @@ let db;
 //     name: 'Tolkien-Arda',
 //     username: 'admin',
 //     password: 'admin'
-//   }
+//   },
 // }
 
 //TODO: Validate publications
 //TODO: Validate Config
-const init = function (Config, publications) {
+const init = function(Config, publications) {
   global.orientDBConfig = Config.database;
   db = require('./db/OrientDbConnection').default(Config);
   if (!db) {
@@ -46,7 +46,6 @@ const init = function (Config, publications) {
     }, 10000);
   }
   startQuerries(Config, publications);
-
 };
 
 /**
@@ -77,7 +76,7 @@ const startQuerries = function(Config, publications) {
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
-  console.log('here');
+
   // Start livequeries for all classes
   db.query('SELECT expand(classes) FROM metadata:schema').then(res => {
     // For each defined class create a livequery
@@ -86,13 +85,13 @@ const startQuerries = function(Config, publications) {
       if (obj.superClass === 'V') {
         collectionTypes.push({
           name: obj.name,
-          type: Types.VERTEX
+          type: Types.VERTEX,
         });
         liveQueryHandler(io, db, obj, publications, cache, insertCache);
-      } else if(obj.superClass === 'E') {
+      } else if (obj.superClass === 'E') {
         collectionTypes.push({
           name: obj.name,
-          type: Types.EDGE
+          type: Types.EDGE,
         });
         liveQueryHandler(io, db, obj, publications, cache, insertCache);
       }
@@ -114,6 +113,14 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   io.sockets.on('connection', socket => {
+    if (Config.auth.force === true) {
+      setTimeout(() => {
+        if (!socket.decoded) {
+          console.log('SOCKET Failed to authorize ', socket.id);
+          socket.disconnect('Authorization is needed to connect to this websocket');
+        }
+      }, Config.auth.time || 60000);
+    }
     console.log('CLIENT CONNECTED:', socket.id);
 
     // Initiate placeholder for the client's future publications.
@@ -132,31 +139,57 @@ const startQuerries = function(Config, publications) {
         console.log(`GoldmineJS: Couldn't find the publication: '${publicationName}'`);
         return;
       }
+      let publicationNameWithParams = payload.publicationNameWithParams;
+      let publication = publications[publicationName];
 
-      // Create cache for publication if it does not exists.
-      if (!cache.hasOwnProperty(payload.publicationNameWithParams)) {
-        cache[payload.publicationNameWithParams] = new Set();
+      publication = _.filter(publication, template => {
+        if(!template.permission) {
+          return template;
+        } else {
+          return template.permission(socket.decoded);
+        }
+      });
+        // Force to create new cache if the server priority is on
+      if(_.find(publication, ['priority', 'server'])) {
+        publicationNameWithParams += `&socketId=${socket.id}`;
+        cache[publicationNameWithParams] = new Set();
+        // Create cache for publication if it does not exists.
+      } else if (!cache.hasOwnProperty(publicationNameWithParams)) {
+        cache[publicationNameWithParams] = new Set();
       }
 
-      const publication = publications[publicationName];
+      // publication = _.filter(publication, (template) => {
+      //   if(!template.permission || template.permission()) {
+      //     return template;
+      //   }
+      //   return false;
+      // });
 
       // Build params.
-      let params = extractParams(payload.publicationNameWithParams);
+      let params = extractParams(publicationNameWithParams);
+
+      // Apply client params over server params except if the priority is server
+      if(_.find(publication, ['priority', 'server'])) {
+        params = _.merge(params, socket.decoded);
+      } else {
+        params = _.merge(socket.decoded, params);
+      }
 
       // Convert all templates in the publication to db queries.
       const queries = new QueryBuilder(publication).build();
 
       if (Config.debug) {
         console.log('-----------------------------------------------');
-        console.log(`PUBLICATION: ${payload.publicationNameWithParams}`);
+        console.log(`PUBLICATION: ${publicationNameWithParams}`);
         console.log('QUERIES:');
         console.log(queries);
         console.log('-----------------------------------------------');
       }
 
+      console.log(params);
       // Resolve the queries and send the responses.
       new QueryResolver(db, publication, queries)
-        .resolve(params, cache[payload.publicationNameWithParams])
+        .resolve(params, cache[publicationNameWithParams])
         .then(data => {
           // Build payload.
           const responsePayload = {
@@ -172,10 +205,10 @@ const startQuerries = function(Config, publications) {
       // Handles publication when is has to be reactive.
       if (payload.isReactive) {
         // Add publication to client's personal placeholder.
-        connections[socket.id].push(payload.publicationNameWithParams);
+        connections[socket.id].push(publicationNameWithParams);
 
         // Add socket to publication.
-        socket.join(payload.publicationNameWithParams);
+        socket.join(publicationNameWithParams);
       }
     });
 
@@ -207,6 +240,20 @@ const startQuerries = function(Config, publications) {
 
       connections[socket.id].splice(index, 1);
     });
+
+    // ----------------------------------------------------
+    // ----------------------------------------------------
+
+    if (Config.auth) {
+      socket.on('authenticate', data => {
+        const authentication = Config.auth.validator(data);
+        if(!authentication) {
+          socket.disconnect('Failed to authenticate token ', socket.id);
+        } else {
+          socket.decoded = authentication;
+        }
+      });
+    }
 
     // -----------------------------------------------------
     // -----------------------------------------------------

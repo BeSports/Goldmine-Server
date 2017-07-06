@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import Orient from 'orientjs';
-import pluralize from "pluralize";
+import pluralize from 'pluralize';
 
 export function extractRid(obj) {
   return '#' + obj.cluster + ':' + obj.position;
@@ -33,7 +33,11 @@ export function extractParams(publicationNameWithParams) {
   _.forEach(strParamsArray, item => {
     index = item.indexOf('=');
     key = item.substr(0, index);
-    value = JSON.parse(item.substr(index + 1));
+    value = JSON.parse(
+      typeof item.substr(index + 1) === 'string' && _.first(item.substr(index + 1)) !== '"'
+        ? `"${item.substr(index + 1)}"`
+        : item.substr(index + 1),
+    );
 
     // An OrientDB RID has to be treated differently.
     if (!(value instanceof Array) && isNaN(value) && value.startsWith('#')) {

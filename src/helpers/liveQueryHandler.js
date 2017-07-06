@@ -18,7 +18,6 @@ export default function(io, db, collectionType, publications, cache, insertCache
     usedInsert,
     target,
   ) {
-    console.log('updateing');
     if (template.collection === _.toLower(collectionType.name)) {
       _.forEach(rooms, roomName => {
         const id = res.content['_id'];
