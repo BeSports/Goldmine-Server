@@ -140,8 +140,16 @@ const startQuerries = function(Config, publications) {
         return;
       }
       let publicationNameWithParams = payload.publicationNameWithParams;
-      const publication = publications[publicationName];
-        // Create new cache if the server priority is on
+      let publication = publications[publicationName];
+
+      publication = _.filter(publication, template => {
+        if(!template.permission) {
+          return template;
+        } else {
+          return template.permission(socket.decoded);
+        }
+      });
+        // Force to create new cache if the server priority is on
       if(_.find(publication, ['priority', 'server'])) {
         publicationNameWithParams += `&socketId=${socket.id}`;
         cache[publicationNameWithParams] = new Set();
@@ -150,7 +158,12 @@ const startQuerries = function(Config, publications) {
         cache[publicationNameWithParams] = new Set();
       }
 
-      console.log(publicationNameWithParams);
+      // publication = _.filter(publication, (template) => {
+      //   if(!template.permission || template.permission()) {
+      //     return template;
+      //   }
+      //   return false;
+      // });
 
       // Build params.
       let params = extractParams(publicationNameWithParams);
