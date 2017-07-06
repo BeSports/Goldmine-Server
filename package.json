@@ -20,7 +20,7 @@
     "OrientDB",
     "server"
   ],
-  "license": "MIT",
+  "license": "LGPLv3",
   "contributors": [
     {
       "name": "Jasper Dansercoer",
@@ -38,13 +38,13 @@
     }
   ],
   "dependencies": {
-    "express": "^4.15.2",
+    "express": "^4.15.3",
     "lodash": "^4.17.4",
     "nan": "^2.6.2",
-    "orientjs": "https://github.com/orientechnologies/orientjs#master",
+    "orientjs": "^2.2.6",
     "pluralize": "^5.0.0",
     "regenerator-runtime": "^0.10.5",
-    "socket.io": "^2.0.2"
+    "socket.io": "^2.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
