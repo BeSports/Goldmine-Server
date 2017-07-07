@@ -3,7 +3,7 @@ import http from 'http';
 import Express from 'express';
 import Server from 'socket.io';
 import liveQueryHandler from './helpers/liveQueryHandler';
-import { extractPublicationName, extractParams } from './helpers/helperFunctions';
+import { extractPublicationName, extractParams, serverParamsUsed } from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
@@ -150,7 +150,7 @@ const startQuerries = function(Config, publications) {
         }
       });
         // Force to create new cache if the server priority is on
-      if(_.find(publication, ['priority', 'server'])) {
+      if(!_.find(publication, ['priority', 'client']) && serverParamsUsed(publication, socket.decoded)) {
         publicationNameWithParams += `&socketId=${socket.id}`;
         cache[publicationNameWithParams] = new Set();
         // Create cache for publication if it does not exists.
@@ -168,11 +168,11 @@ const startQuerries = function(Config, publications) {
       // Build params.
       let params = extractParams(publicationNameWithParams);
 
-      // Apply client params over server params except if the priority is server
-      if(_.find(publication, ['priority', 'server'])) {
-        params = _.merge(params, socket.decoded);
-      } else {
+      // Apply client params over server params only when client has priority
+      if(_.find(publication, ['priority', 'client'])) {
         params = _.merge(socket.decoded, params);
+      } else {
+        params = _.merge(params, socket.decoded);
       }
 
       // Convert all templates in the publication to db queries.
@@ -268,6 +268,7 @@ const startQuerries = function(Config, publications) {
       });
       delete connections[socket.id];
     });
+
   });
 
   // ---------------------------------------------------------------------------------------------------------------------

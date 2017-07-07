@@ -83,3 +83,7 @@ export function extractFields(fields, data) {
 export function getCollectionName(template) {
   return template.collectionName ? template.collectionName : pluralize(template.collection);
 }
+
+export function serverParamsUsed(publication, decoded) {
+
+}
