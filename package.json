@@ -1,6 +1,6 @@
 {
   "name": "goldmine-server",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "OrientDB",
     "server"
   ],
-  "license": "LGPLv3",
+  "license": "LGPL-3.0",
   "contributors": [
     {
       "name": "Jasper Dansercoer",
@@ -38,6 +38,7 @@
     }
   ],
   "dependencies": {
+    "connect-datadog": "0.0.6",
     "express": "^4.15.3",
     "lodash": "^4.17.4",
     "nan": "^2.6.2",

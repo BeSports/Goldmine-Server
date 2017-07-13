@@ -1,12 +1,30 @@
 import _ from 'lodash';
 import OrderTypes from '../enums/OrderTypes';
-import OperatorTypes from '../enums/OperatorTypes';
 import Types from "../enums/Types";
 import DirectionTypes from "../enums/DirectionTypes";
 
 export default class OrientDBQueryBuilder {
-  constructor(templates) {
-    this.templates = templates;
+  constructor(templates, params, decoded) {
+    let templateTemp;
+    if (typeof templates === 'function') {
+      templateTemp = templates(params);
+    } else {
+      templateTemp = templates;
+    }
+    if(templateTemp instanceof Array) {
+      this.templates = _.filter(templateTemp, template => {
+        if (!template.permission) {
+          return template;
+        } else {
+          return template.permission(decoded);
+        }
+      });
+    } else if(templateTemp.permission && templateTemp.permission(decoded)) {
+      this.templates = templateTemp;
+    } else {
+      this.templates = [];
+    }
+    this.tempParams = [];
   }
 
   build() {
@@ -16,6 +34,10 @@ export default class OrientDBQueryBuilder {
       if (typeof template === 'string') {
         statements.push(template);
       } else {
+        if(!template.collection) {
+          console.log(`No collection name was provided to ${template}`);
+        }
+        
         let selectStmt = null;
         let fromStmt = null;
         let whereStmt = null;
@@ -25,7 +47,6 @@ export default class OrientDBQueryBuilder {
         // TOP LEVEL
         // select statement
         selectStmt = this.buildSelectStmt(template);
-
         // from statement
         fromStmt = template.collection;
 
@@ -66,12 +87,23 @@ export default class OrientDBQueryBuilder {
       }
     });
 
-    return statements;
+    return {
+      statements,
+      statementParams: this.tempParams.reduce((acc, cur, i) =>  {
+        acc['goldmine' + i] = cur;
+        return acc;
+      }, {})
+    };
+  }
+
+  setNextParamAvailable(value) {
+    this.tempParams.push(value);
+    return _.size(this.tempParams) - 1;
   }
 
   buildSelectStmt(template) {
     let res = '';
-
+    //extends
     if (template.target !== undefined) {
       const edge = this.buildEdge(template.relation, template.direction);
 
@@ -88,6 +120,8 @@ export default class OrientDBQueryBuilder {
 
         res += `, ${tempEdge}["${tempField}"] AS \`${template.target}_${tempField}\``;
       });
+
+      // main class subscribed on
     } else {
       const size = _.size(template.fields);
 
@@ -111,53 +145,78 @@ export default class OrientDBQueryBuilder {
     return res;
   }
 
-  buildWhereStmt(template, params) {
-    let res = '';
-    let paramsHolder = params;
-
-    if (paramsHolder === undefined) {
-      paramsHolder = template.params;
+  buildWhereStmt(template) {
+    let edge = '';
+    if (template.target !== undefined) {
+      edge = this.buildEdge(template.relation, template.direction);
     }
-
-    const paramsSize = _.size(paramsHolder);
-
-    _.forEach(paramsHolder, (param, key) => {
-      if (param instanceof Array) {
-        if (param[0] instanceof Array) {
-          res += ` ( ${this.buildWhereStmt(template, param)} ) `;
-        } else {
-          let paramOne = param[0];
-          let paramTwo = param[2];
-
-          if (template.target !== undefined) {
-            const edge = this.buildEdge(template.relation, template.direction);
-
-            if (!paramOne.startsWith(':')) {
-              paramOne = `${edge}["${paramOne}"]`;
-            } else if (paramTwo !== undefined) {
-              paramTwo = `${edge}["${paramTwo}"]`;
-            }
-          }
-
-          if (param[1] === undefined) {
-            res += ` ${paramOne} ${OperatorTypes.EQUAL} :${param[0]}`;
-          } else {
-            res += ` ${paramOne} ${param[1]} ${paramTwo !== undefined ? paramTwo : ''}`;
-          }
-        }
-      }
-
-      if (paramsSize - 1 > key && typeof param !== 'string') {
-        if (paramsHolder[key + 1] instanceof Array) {
-          res += ' AND';
-        } else {
-          res += ` ${paramsHolder[key + 1]}`;
-        }
-      }
-    });
-
+    let res = '';
+    if (template.params instanceof Object) {
+      res = this.buildObject(template.params, edge);
+    } else if(template.params instanceof Array) {
+      _.forEach(template.params, (param, key) => {
+        res += this.buildObject(param, edge) + (_.size(template.params) - 1 > key ? ' OR' : '');
+      });
+    }
     return res;
   }
+
+  buildObject(paramsObject, edge) {
+    let objectRes = '(';
+    let counter = 0;
+    _.forEach(paramsObject, (value, property) => {
+      objectRes += this.buildProperty(value, property, edge) + (_.size(paramsObject) - 1 > counter ? ' AND' : ' )');
+      counter++;
+    });
+    return objectRes;
+  }
+
+  buildProperty(value, property, edge){
+    if (value instanceof Array) {
+      let res = '(';
+      _.forEach(value, (v, i) => {
+        console.log(res, 'before');
+        res += this.buildPropertyObject(property, v, edge) + (_.size(value) - 1 > i ? ' OR' : ' )');
+        console.log(res, 'after');
+
+      })
+      return res;
+    }
+    if (value instanceof Object) {
+      return this.buildPropertyObject(property, value, edge);
+    }
+    return this.buildPropertyValuePair(property, value, '=', edge);
+  }
+
+  buildPropertyObject(propertyName, propertyObject, edge) {
+    if (typeof propertyObject === 'string') {
+      return this.buildPropertyValuePair(propertyName, propertyObject, '=', edge);
+    } else if (propertyObject.value !== undefined && propertyObject.operator !== undefined) {
+      return this.buildPropertyValuePair(propertyName, propertyObject.value, propertyObject.operator, edge);
+    } else if (propertyObject.value !== undefined) {
+      return this.buildPropertyValuePair(propertyName, propertyObject.value, '=', edge);
+    } else if (propertyObject.operator !== undefined) {
+      return this.buildPropertyValuePair(propertyName, false, propertyObject.operator, edge);
+    }
+    return '';
+  }
+
+  // preset goldmine since number are not recognized as params by orientjs
+  buildPropertyValuePair(property, value, operator, edge) {
+    console.log(property, value, operator);
+    const tempParamIndex = this.setNextParamAvailable(value);
+    if(value === false) {
+      if (edge) {
+        return ` ${edge}["${property}"] ${operator}`;
+      }
+      return ` \`${property}\` ${operator}`;
+    }
+    if (edge) {
+      return ` ${edge}["${property}"] ${operator || '='} :goldmine${tempParamIndex}`;
+    }
+    return ` \`${property}\` ${operator || '='} :goldmine${tempParamIndex}`;
+  }
+
 
   buildOrderByStmt(template) {
     let res = '';

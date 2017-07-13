@@ -3,7 +3,7 @@ import http from 'http';
 import Express from 'express';
 import Server from 'socket.io';
 import liveQueryHandler from './helpers/liveQueryHandler';
-import { extractPublicationName, extractParams } from './helpers/helperFunctions';
+import { extractPublicationName, extractParams, serverParamsUsed } from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
@@ -105,7 +105,7 @@ const startQuerries = function(Config, publications) {
 
   setInterval(() => {
     db.query('SELECT _id FROM V LIMIT 1').catch(() => {
-      console.log("Couldn't keep database connection alive!");
+      console.error("Couldn't keep database connection alive!");
     });
   }, 60000);
 
@@ -113,15 +113,19 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   io.sockets.on('connection', socket => {
-    if (Config.auth.force === true) {
+    if (Config && Config.auth && Config.auth.force === true) {
       setTimeout(() => {
         if (!socket.decoded) {
-          console.log('SOCKET Failed to authorize ', socket.id);
+          if (_.get(Config, 'logging.authentication', false)) {
+            console.log('SOCKET Failed to authorize ', socket.id);
+          }
           socket.disconnect('Authorization is needed to connect to this websocket');
         }
       }, Config.auth.time || 60000);
     }
-    console.log('CLIENT CONNECTED:', socket.id);
+    if (_.get(Config, 'logging.connections', false)) {
+      console.log('CLIENT CONNECTED:', socket.id);
+    }
 
     // Initiate placeholder for the client's future publications.
     connections[socket.id] = [];
@@ -130,27 +134,26 @@ const startQuerries = function(Config, publications) {
     // -----------------------------------------------------
 
     socket.on('subscribe', payload => {
-      console.log('NEW SUBSCRIPTION:', payload.publicationNameWithParams);
+      if (_.get(Config, 'logging.subscriptions', false)) {
+        console.log('NEW SUBSCRIPTION:', payload.publicationNameWithParams);
+      }
 
       const publicationName = extractPublicationName(payload.publicationNameWithParams);
 
       // Check if publication exists.
       if (!publications.hasOwnProperty(publicationName)) {
-        console.log(`GoldmineJS: Couldn't find the publication: '${publicationName}'`);
+        if (_.get(Config, 'logging.subscriptions', false)) {
+          console.log(`GoldmineJS: Couldn't find the publication: '${publicationName}'`);
+        }
         return;
       }
       let publicationNameWithParams = payload.publicationNameWithParams;
       let publication = publications[publicationName];
 
-      publication = _.filter(publication, template => {
-        if(!template.permission) {
-          return template;
-        } else {
-          return template.permission(socket.decoded);
-        }
-      });
-        // Force to create new cache if the server priority is on
-      if(_.find(publication, ['priority', 'server'])) {
+      // Force to create new cache if the server priority is on
+      if (
+        !_.find(publication, ['priority', 'client']) && serverParamsUsed(publication, socket.decoded)
+      ) {
         publicationNameWithParams += `&socketId=${socket.id}`;
         cache[publicationNameWithParams] = new Set();
         // Create cache for publication if it does not exists.
@@ -167,29 +170,31 @@ const startQuerries = function(Config, publications) {
 
       // Build params.
       let params = extractParams(publicationNameWithParams);
-
-      // Apply client params over server params except if the priority is server
-      if(_.find(publication, ['priority', 'server'])) {
-        params = _.merge(params, socket.decoded);
-      } else {
+      // Apply client params over server params only when client has priority
+      if (_.find(publication, ['priority', 'client'])) {
         params = _.merge(socket.decoded, params);
+      } else {
+        params = _.merge(params, socket.decoded);
       }
-
       // Convert all templates in the publication to db queries.
-      const queries = new QueryBuilder(publication).build();
+      const queryBuilds = new QueryBuilder(publication, params, socket.decoded).build();
+      const queries = queryBuilds.statements;
 
-      if (Config.debug) {
+      const queryParams = queryBuilds.statementParams;
+
+      if (_.get(Config, 'logging.publications', false)) {
         console.log('-----------------------------------------------');
         console.log(`PUBLICATION: ${publicationNameWithParams}`);
         console.log('QUERIES:');
         console.log(queries);
+        console.log(queryParams);
         console.log('-----------------------------------------------');
       }
 
-      console.log(params);
+
       // Resolve the queries and send the responses.
-      new QueryResolver(db, publication, queries)
-        .resolve(params, cache[publicationNameWithParams])
+      new QueryResolver(db, publication, queries, socket.decoded, params)
+        .resolve(queryParams, cache[publicationNameWithParams])
         .then(data => {
           // Build payload.
           const responsePayload = {
@@ -198,7 +203,9 @@ const startQuerries = function(Config, publications) {
           };
 
           // Send data to client who subscribed.
-          console.log('emitting');
+          if (_.get(Config, 'logging.publications', false)) {
+            console.log('emitting');
+          }
           socket.emit(payload.publicationNameWithParams, responsePayload);
         });
 
@@ -247,7 +254,7 @@ const startQuerries = function(Config, publications) {
     if (Config.auth) {
       socket.on('authenticate', data => {
         const authentication = Config.auth.validator(data);
-        if(!authentication) {
+        if (!authentication) {
           socket.disconnect('Failed to authenticate token ', socket.id);
         } else {
           socket.decoded = authentication;
@@ -259,7 +266,9 @@ const startQuerries = function(Config, publications) {
     // -----------------------------------------------------
 
     socket.on('disconnect', () => {
-      console.log('CLIENT DISCONNECTED:', socket.id);
+      if (_.get(Config, 'logging.connections', false)) {
+        console.log('CLIENT DISCONNECTED:', socket.id);
+      }
 
       _.forEach(connections[socket.id], publicationNameWithParams => {
         if (io.sockets.adapter.rooms[publicationNameWithParams] === undefined) {
