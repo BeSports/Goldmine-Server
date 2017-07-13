@@ -2,6 +2,8 @@
 
 # GoldmineJS - Server
 
+Documentation needs to be updated, if you would like to use the newer version, wait until version 0.2 or contact me
+
 ## Introduction
 
 GoldmineJS is a framework for building reactive web apps in Javascript.
