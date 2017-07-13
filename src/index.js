@@ -150,17 +150,9 @@ const startQuerries = function(Config, publications) {
       let publicationNameWithParams = payload.publicationNameWithParams;
       let publication = publications[publicationName];
 
-      publication = _.filter(publication, template => {
-        if (!template.permission) {
-          return template;
-        } else {
-          return template.permission(socket.decoded);
-        }
-      });
       // Force to create new cache if the server priority is on
       if (
-        !_.find(publication, ['priority', 'client']) &&
-        serverParamsUsed(publication, socket.decoded)
+        !_.find(publication, ['priority', 'client']) && serverParamsUsed(publication, socket.decoded)
       ) {
         publicationNameWithParams += `&socketId=${socket.id}`;
         cache[publicationNameWithParams] = new Set();
@@ -178,28 +170,31 @@ const startQuerries = function(Config, publications) {
 
       // Build params.
       let params = extractParams(publicationNameWithParams);
-
       // Apply client params over server params only when client has priority
       if (_.find(publication, ['priority', 'client'])) {
         params = _.merge(socket.decoded, params);
       } else {
         params = _.merge(params, socket.decoded);
       }
-
       // Convert all templates in the publication to db queries.
-      const queries = new QueryBuilder(publication).build();
+      const queryBuilds = new QueryBuilder(publication, params, socket.decoded).build();
+      const queries = queryBuilds.statements;
+
+      const queryParams = queryBuilds.statementParams;
 
       if (_.get(Config, 'logging.publications', false)) {
         console.log('-----------------------------------------------');
         console.log(`PUBLICATION: ${publicationNameWithParams}`);
         console.log('QUERIES:');
         console.log(queries);
+        console.log(queryParams);
         console.log('-----------------------------------------------');
       }
 
+
       // Resolve the queries and send the responses.
-      new QueryResolver(db, publication, queries)
-        .resolve(params, cache[publicationNameWithParams])
+      new QueryResolver(db, publication, queries, socket.decoded, params)
+        .resolve(queryParams, cache[publicationNameWithParams])
         .then(data => {
           // Build payload.
           const responsePayload = {

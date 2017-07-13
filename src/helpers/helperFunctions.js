@@ -85,5 +85,6 @@ export function getCollectionName(template) {
 }
 
 export function serverParamsUsed(publication, decoded) {
-
+  //TODO
+  return;
 }

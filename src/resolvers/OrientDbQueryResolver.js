@@ -1,11 +1,29 @@
 import _ from 'lodash';
-import pluralize from "pluralize";
-import {getCollectionName} from '../helpers/helperFunctions';
+import pluralize from 'pluralize';
+import { getCollectionName } from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
-  constructor(db, templates, queries) {
+  constructor(db, templates, queries, decoded, params) {
     this.db = db;
-    this.templates = templates;
+    let templateTemp;
+    if (typeof templates === 'function') {
+      templateTemp = templates(params);
+    } else {
+      templateTemp = templates;
+    }
+    if(templateTemp instanceof Array) {
+      this.templates = _.filter(templateTemp, template => {
+        if (!template.permission) {
+          return template;
+        } else {
+          return template.permission(decoded);
+        }
+      });
+    } else if(templateTemp.permission && templateTemp.permission(decoded)) {
+      this.templates = templateTemp;
+    } else {
+      this.templates = [];
+    }
     this.queries = queries;
   }
 
@@ -13,7 +31,7 @@ export default class OrientDBQueryResolver {
     let promises = [];
 
     _.forEach(this.queries, query => {
-      promises.push(this.db.query(query, {params}));
+      promises.push(this.db.query(query, { params }));
     });
 
     return Promise.all(promises)
@@ -42,7 +60,12 @@ export default class OrientDBQueryResolver {
       cache.add(obj['_id'].toString());
 
       _.forEach(obj, (value, key) => {
-        if (key.startsWith('_') || key.startsWith('in_') || key.startsWith('out_') || !key.includes('_')) {
+        if (
+          key.startsWith('_') ||
+          key.startsWith('in_') ||
+          key.startsWith('out_') ||
+          !key.includes('_')
+        ) {
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
           if (key.startsWith('_id')) {
@@ -62,7 +85,7 @@ export default class OrientDBQueryResolver {
             }
           });
 
-          if ((tempExtend !== '') && (tempExtend.multi === undefined || tempExtend.multi)) {
+          if (tempExtend !== '' && (tempExtend.multi === undefined || tempExtend.multi)) {
             if (!formattedObject.hasOwnProperty(target)) {
               formattedObject[target] = [];
             }
@@ -72,7 +95,9 @@ export default class OrientDBQueryResolver {
                 formattedObject[target][key] = {};
               }
 
-              formattedObject[target][key][property] = property.startsWith('_id') ? item.toString() : item;
+              formattedObject[target][key][property] = property.startsWith('_id')
+                ? item.toString()
+                : item;
 
               if (property.startsWith('_id')) {
                 cache.add(item.toString());
@@ -83,14 +108,19 @@ export default class OrientDBQueryResolver {
               formattedObject[target] = {};
             }
 
-            if ((value instanceof Array && _.size(value) === 1) || (typeof value !== 'object' && !(value instanceof Array))) {
+            if (
+              (value instanceof Array && _.size(value) === 1) ||
+              (typeof value !== 'object' && !(value instanceof Array))
+            ) {
               let tempValue = value;
 
               if (value instanceof Array) {
                 tempValue = value[0];
               }
 
-              formattedObject[target][property] = property.startsWith('_id') ? tempValue.toString() : tempValue;
+              formattedObject[target][property] = property.startsWith('_id')
+                ? tempValue.toString()
+                : tempValue;
 
               if (property.startsWith('_id')) {
                 cache.add(tempValue.toString());
@@ -98,8 +128,8 @@ export default class OrientDBQueryResolver {
             } else {
               console.log(
                 'ERROR: Result in extend "' +
-                target +
-                '" contains more than one element. Change multi to true or remove it.',
+                  target +
+                  '" contains more than one element. Change multi to true or remove it.',
               );
             }
           }
