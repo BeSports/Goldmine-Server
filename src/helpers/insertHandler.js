@@ -1,8 +1,8 @@
 import _ from 'lodash';
 import Builder from '../builders/OrientDbQueryBuilder';
 import Resolver from '../resolvers/OrientDbQueryResolver';
-import {extractParams, extractRid, emitResults, getCollectionName} from './helperFunctions';
-import OperationTypes from "../enums/OperationTypes";
+import { extractParams, extractRid, emitResults, getCollectionName } from './helperFunctions';
+import OperationTypes from '../enums/OperationTypes';
 
 /**
  * Handles inserts from the live queries.
@@ -13,36 +13,28 @@ import OperationTypes from "../enums/OperationTypes";
  * @param insertedObject
  * @param cache
  */
-export default function insertHandler(io, db, template, collection, rooms, insertedObject, cache, cacheEdges) {
+export default function insertHandler(io, db, room, roomHash, collectionType, res) {
+  const id = res.content['_id'];
+  const resolver = new Resolver(db, room.templates, room.queries, {}, true);
+  const fields = _.concat(_.map(_.filter(room.templates, t => {
+    return _.lowerCase(t.collection) === _.lowerCase(collectionType.name);
+  }), 'fields'));
 
-  if (collection.type !== template.collection.type) {
-    return;
-  }
+  resolver.resolve(room.queryParams).then(result => {
+    let data = _.find(result[0].data, { _id: id });
 
-  const id = insertedObject.content['_id'];
-  const queries = new Builder([template]).build();
-  const resolver = new Resolver(db, [template], queries);
-
-  _.forEach(rooms, room => {
-    const params = extractParams(room);
-
-    resolver
-      .resolve(params, cache[room])
-      .then(result => {
-        let data = _.find(result[0].data, {'_id': id});
-
-        if (data !== undefined) {
-          cache[room].add(id);
-          emitResults(
-            io,
-            room,
-            OperationTypes.INSERT,
-            getCollectionName(template),
-            undefined,
-            data,
-            template.fields,
-          );
-        }
-      });
+    if (data !== undefined) {
+      io.sockets.adapter.rooms[roomHash].cache.push(id);
+      emitResults(
+        io,
+        roomHash,
+        room.publicationNameWithParams,
+        OperationTypes.INSERT,
+        data['@class'],
+        undefined,
+        data,
+        fields,
+      );
+    }
   });
 }

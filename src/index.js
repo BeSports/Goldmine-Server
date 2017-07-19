@@ -90,13 +90,13 @@ const startQuerries = function(Config, publications) {
           name: obj.name,
           type: Types.VERTEX,
         });
-        liveQueryHandler(io, db, obj, publications, insertCache);
+        liveQueryHandler(io, db, obj, insertCache);
       } else if (obj.superClass === 'E') {
         collectionTypes.push({
           name: obj.name,
           type: Types.EDGE,
         });
-        liveQueryHandler(io, db, obj, publications, insertCache);
+        liveQueryHandler(io, db, obj, insertCache);
       }
     });
   });
@@ -197,7 +197,8 @@ const startQuerries = function(Config, publications) {
           }),
         };
 
-        const cache = _.map(data, 'cache');
+        // Flattens all cache to a single array and return the unique ids
+        const cache = _.uniq(_.flatten(_.map(data, 'cache')));
 
         // Send data to client who subscribed.
         if (_.get(Config, 'logging.publications', false)) {
@@ -219,6 +220,11 @@ const startQuerries = function(Config, publications) {
           if (_.get(Config, 'logging.publications', false)) {
             console.log('joined', hash(room));
           }
+          io.sockets.adapter.rooms[hash(room)].cache = cache;
+          io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
+          io.sockets.adapter.rooms[hash(room)].publicationNameWithParams = publicationNameWithParams;
+          io.sockets.adapter.rooms[hash(room)].queries = queries;
+          io.sockets.adapter.rooms[hash(room)].templates = templates;
         }
       });
     });

@@ -3,17 +3,17 @@ import pluralize from 'pluralize';
 import { getCollectionName } from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
-  constructor(db, templates, queries, decoded) {
+  constructor(db, templates, queries, decoded, allowAll) {
     this.db = db;
     if (templates instanceof Array) {
       this.templates = _.filter(templates, template => {
-        if (!template.permission) {
+        if (!template.permission || allowAll) {
           return template;
         } else {
           return template.permission(decoded);
         }
       });
-    } else if (templates.permission && templates.permission(decoded)) {
+    } else if ((templates.permission && templates.permission(decoded)) || allowAll) {
       this.templates = templates;
     } else {
       this.templates = [];

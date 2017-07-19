@@ -176,10 +176,7 @@ export default class OrientDBQueryBuilder {
     if (value instanceof Array) {
       let res = '(';
       _.forEach(value, (v, i) => {
-        console.log(res, 'before');
         res += this.buildPropertyObject(property, v, edge) + (_.size(value) - 1 > i ? ' OR' : ' )');
-        console.log(res, 'after');
-
       })
       return res;
     }
@@ -204,7 +201,6 @@ export default class OrientDBQueryBuilder {
 
   // preset goldmine since number are not recognized as params by orientjs
   buildPropertyValuePair(property, value, operator, edge) {
-    console.log(property, value, operator);
     const tempParamIndex = this.setNextParamAvailable(value);
     if(value === false) {
       if (edge) {

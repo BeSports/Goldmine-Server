@@ -5,7 +5,7 @@ import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from "pluralize";
 
-export default function(io, db, collectionType, publications, cache, insertCache) {
+export default function(io, db, collectionType, insertCache) {
   const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
 
   const handler = function(
@@ -87,99 +87,83 @@ export default function(io, db, collectionType, publications, cache, insertCache
       console.log(`INSERT DETECTED (${collectionType.name})`);
 
       const rid = extractRid(res);
-      // Check if type of relation
-      // if (res.content.hasOwnProperty('out') && res.content.hasOwnProperty('in')) {
-      //   insertCache.push({
-      //     rid: extractRid(res),
-      //     type: res.content['@class'],
-      //     out: res.content.out.toString(),
-      //     in: res.content.in.toString(),
-      //   });
-      // }
+      _.forEach(io.sockets.adapter.rooms, (room, roomHash) => {
+        if(!_.find(_.get(room, 'templates', []), t => {
+          return _.lowerCase(t.collection) === _.lowerCase(collectionType.name);
+          })) {
+          return;
+        }
+        const content = res.content;
 
-      _.forEach(publications, (publication, roomName) => {
-        let roomsForPublication = [];
+        // if (collectionType.type === Types.EDGE) {
+        //   insertCache.push({
+        //     rid: rid,
+        //     type: content['@class'],
+        //     out: content.out.toString(),
+        //     in: content.in.toString(),
+        //   });
+        // }
 
-        _.forEach(io.sockets.adapter.rooms, (value, key) => {
-          if (key.startsWith(roomName)) {
-            roomsForPublication.push(key);
-          }
-
-          _.forEach(publication, template => {
-            const content = res.content;
-
-            if (collectionType.type === Types.EDGE) {
-              insertCache.push({
-                rid: rid,
-                type: content['@class'],
-                out: content.out.toString(),
-                in: content.in.toString(),
-              });
-            }
-            else {
-              insertHandler(io, db, template, collectionType, roomsForPublication, res, cache, insertCache);
-            }
-
-            // Template - root level
-            // if (
-            //   template.collection.name === collectionType.name ||
-            //   collectionType.type === Types.EDGE
-            // ) {
-            //   _.forEach(roomsForSubscription, room => {
-            //     const params = extractParams(room);
-            //
-            //     const queries = new OrientDBQueryBuilder([template]).build();
-            //
-            //     new OrientDBQueryResolver(db, [template], queries)
-            //       .resolve(params, cache[room])
-            //       .then(result => {
-            //         console.log(result[0].data);
-            //         // Check if rid is in result set.
-            //         const tempObject = _.find(result[0].data, x => {
-            //           if (x.rid === rid) {
-            //             return true;
-            //           } else {
-            //             let placeholder =
-            //             _.forEach();
-            //             console.log('x', x);
-            //             console.log('target', template.target);
-            //             if (x.hasOwnProperty(template.target)) {
-            //               console.log('inside', x[template.target]);
-            //               if (x[template.target] instanceof Array) {
-            //                 return !!_.find(x[template.target], y => {
-            //                   return y.rid === rid;
-            //                 });
-            //               }
-            //               else if (x[template.target].rid === rid) {
-            //                 return true;
-            //               }
-            //             }
-            //           }
-            //
-            //           return false;
-            //         });
-            //
-            //         console.log(tempObject);
-            //
-            //         if (tempObject !== undefined) {
-            //           emitResults(
-            //             io,
-            //             room,
-            //             OperationTypes.INSERT,
-            //             template.collectionName,
-            //             undefined,
-            //             tempObject,
-            //           );
-            //
-            //           console.log('sent');
-            //         }
-            //       });
-            //   });
-            // }
-            //
-            // console.log('template');
-          });
-        });
+        insertHandler(io, db, room, roomHash, collectionType, res);
+        //TODO: go on here
+        // Template - root level
+        // if (
+        //   template.collection.name === collectionType.name ||
+        //   collectionType.type === Types.EDGE
+        // ) {
+        //   _.forEach(roomsForSubscription, room => {
+        //     const params = extractParams(room);
+        //
+        //     const queries = new OrientDBQueryBuilder([template]).build();
+        //
+        //     new OrientDBQueryResolver(db, [template], queries)
+        //       .resolve(params, cache[room])
+        //       .then(result => {
+        //         console.log(result[0].data);
+        //         // Check if rid is in result set.
+        //         const tempObject = _.find(result[0].data, x => {
+        //           if (x.rid === rid) {
+        //             return true;
+        //           } else {
+        //             let placeholder =
+        //             _.forEach();
+        //             console.log('x', x);
+        //             console.log('target', template.target);
+        //             if (x.hasOwnProperty(template.target)) {
+        //               console.log('inside', x[template.target]);
+        //               if (x[template.target] instanceof Array) {
+        //                 return !!_.find(x[template.target], y => {
+        //                   return y.rid === rid;
+        //                 });
+        //               }
+        //               else if (x[template.target].rid === rid) {
+        //                 return true;
+        //               }
+        //             }
+        //           }
+        //
+        //           return false;
+        //         });
+        //
+        //         console.log(tempObject);
+        //
+        //         if (tempObject !== undefined) {
+        //           emitResults(
+        //             io,
+        //             room,
+        //             OperationTypes.INSERT,
+        //             template.collectionName,
+        //             undefined,
+        //             tempObject,
+        //           );
+        //
+        //           console.log('sent');
+        //         }
+        //       });
+        //   });
+        // }
+        //
+        // console.log('template');
       });
     })
     .on('live-update', res => {
