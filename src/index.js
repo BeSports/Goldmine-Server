@@ -7,6 +7,7 @@ import { extractPublicationName, extractParams, serverParamsUsed } from './helpe
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
+import hash from 'object-hash';
 
 const app = new Express();
 const server = http.createServer(app);
@@ -56,13 +57,15 @@ const startQuerries = function(Config, publications) {
     console.log('WEB SOCKET LISTENING ON:', Config.port);
   });
 
-  // ---------------------------------------------------------------------------------------------------------------------
-  // ---------------------------------------------------------------------------------------------------------------------
+  if(Config.logging.statistics === true && typeof Config.logging.repeat === "number") {
+    setInterval(
+      () => {
+        console.log(`${new Date().toISOString()} Rooms: ${_.size(_.keys(io.sockets.adapter.rooms))} Sockets: ${_.size(io.sockets.sockets)}`);
+      }, Config.logging.repeat
+    );
+  }
 
-  // The purpose of the cache is to determine
-  // for a certain publication which objects
-  // are bound.
-  const cache = {};
+
 
   // Keeps track of all new inserts which could
   // be interesting for future updates.
@@ -87,13 +90,13 @@ const startQuerries = function(Config, publications) {
           name: obj.name,
           type: Types.VERTEX,
         });
-        liveQueryHandler(io, db, obj, publications, cache, insertCache);
+        liveQueryHandler(io, db, obj, publications, insertCache);
       } else if (obj.superClass === 'E') {
         collectionTypes.push({
           name: obj.name,
           type: Types.EDGE,
         });
-        liveQueryHandler(io, db, obj, publications, cache, insertCache);
+        liveQueryHandler(io, db, obj, publications, insertCache);
       }
     });
   });
@@ -113,22 +116,21 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   io.sockets.on('connection', socket => {
+    connections[socket.id] = [];
+
     if (Config && Config.auth && Config.auth.force === true) {
       setTimeout(() => {
         if (!socket.decoded) {
           if (_.get(Config, 'logging.authentication', false)) {
             console.log('SOCKET Failed to authorize ', socket.id);
           }
-          socket.disconnect('Authorization is needed to connect to this websocket');
+          socket.disconnect('Authentication is needed to connect to this websocket');
         }
       }, Config.auth.time || 60000);
     }
     if (_.get(Config, 'logging.connections', false)) {
       console.log('CLIENT CONNECTED:', socket.id);
     }
-
-    // Initiate placeholder for the client's future publications.
-    connections[socket.id] = [];
 
     // -----------------------------------------------------
     // -----------------------------------------------------
@@ -148,27 +150,11 @@ const startQuerries = function(Config, publications) {
         return;
       }
       let publicationNameWithParams = payload.publicationNameWithParams;
+
+      // publicationObject
       let publication = publications[publicationName];
 
-      // Force to create new cache if the server priority is on
-      if (
-        !_.find(publication, ['priority', 'client']) && serverParamsUsed(publication, socket.decoded)
-      ) {
-        publicationNameWithParams += `&socketId=${socket.id}`;
-        cache[publicationNameWithParams] = new Set();
-        // Create cache for publication if it does not exists.
-      } else if (!cache.hasOwnProperty(publicationNameWithParams)) {
-        cache[publicationNameWithParams] = new Set();
-      }
-
-      // publication = _.filter(publication, (template) => {
-      //   if(!template.permission || template.permission()) {
-      //     return template;
-      //   }
-      //   return false;
-      // });
-
-      // Build params.
+      // Build params for subscription
       let params = extractParams(publicationNameWithParams);
       // Apply client params over server params only when client has priority
       if (_.find(publication, ['priority', 'client'])) {
@@ -176,10 +162,17 @@ const startQuerries = function(Config, publications) {
       } else {
         params = _.merge(params, socket.decoded);
       }
+
       // Convert all templates in the publication to db queries.
       const queryBuilds = new QueryBuilder(publication, params, socket.decoded).build();
+
+      // Queries
       const queries = queryBuilds.statements;
 
+      //templates
+      const templates = queryBuilds.templates;
+
+      // Params for the query
       const queryParams = queryBuilds.statementParams;
 
       if (_.get(Config, 'logging.publications', false)) {
@@ -191,38 +184,53 @@ const startQuerries = function(Config, publications) {
         console.log('-----------------------------------------------');
       }
 
+      // Resolve the initial queries and send the responses.
+      new QueryResolver(db, templates, queries, socket.decoded).resolve(queryParams).then(data => {
+        // Build payload.
+        const responsePayload = {
+          type: Types.INIT,
+          data: _.map(data, d => {
+            return {
+              collectionName: d.collectionName,
+              data: d.data,
+            };
+          }),
+        };
 
-      // Resolve the queries and send the responses.
-      new QueryResolver(db, publication, queries, socket.decoded, params)
-        .resolve(queryParams, cache[publicationNameWithParams])
-        .then(data => {
-          // Build payload.
-          const responsePayload = {
-            type: Types.INIT,
-            data: data,
+        const cache = _.map(data, 'cache');
+
+        // Send data to client who subscribed.
+        if (_.get(Config, 'logging.publications', false)) {
+          console.log('emitting');
+        }
+
+        socket.emit(payload.publicationNameWithParams, responsePayload);
+        if (payload.isReactive) {
+          // Add publication to client's personal placeholder.
+          const room = {
+            queries,
+            queryParams,
+            publicationNameWithParams,
           };
+          connections[socket.id].push(room);
 
-          // Send data to client who subscribed.
+          // Add socket to publication.
+          socket.join(hash(room));
           if (_.get(Config, 'logging.publications', false)) {
-            console.log('emitting');
+            console.log('joined', hash(room));
           }
-          socket.emit(payload.publicationNameWithParams, responsePayload);
-        });
-
-      // Handles publication when is has to be reactive.
-      if (payload.isReactive) {
-        // Add publication to client's personal placeholder.
-        connections[socket.id].push(publicationNameWithParams);
-
-        // Add socket to publication.
-        socket.join(publicationNameWithParams);
-      }
+        }
+      });
     });
 
     // -----------------------------------------------------
     // -----------------------------------------------------
 
     socket.on('unsubscribe', payload => {
+      if (_.get(Config, 'logging.subscriptions', false)) {
+        console.log('REMOVING SUBSCRIPTION:', payload.publicationNameWithParams);
+      }
+
       const publicationName = extractPublicationName(payload.publicationNameWithParams);
 
       // Check if room exists.
@@ -230,22 +238,10 @@ const startQuerries = function(Config, publications) {
         return;
       }
 
+      const roomToRemove = _.first(_.pullAt(connections[socket.id], _.findIndex(connections[socket.id], ['publicationNameWithParams', payload.publicationNameWithParams])));
+
       // Remove socket from socket.io publication room.
-      socket.leave(payload.publicationNameWithParams);
-
-      // Check if other clients are using cache.
-      if (io.sockets.adapter.rooms[payload.publicationNameWithParams] === undefined) {
-        delete cache[payload.publicationNameWithParams];
-      }
-
-      // Remove publication from connections.
-      const index = connections[socket.id].indexOf(payload.publicationNameWithParams);
-
-      if (index === -1) {
-        return;
-      }
-
-      connections[socket.id].splice(index, 1);
+      socket.leave(hash(roomToRemove));
     });
 
     // ----------------------------------------------------
@@ -269,12 +265,6 @@ const startQuerries = function(Config, publications) {
       if (_.get(Config, 'logging.connections', false)) {
         console.log('CLIENT DISCONNECTED:', socket.id);
       }
-
-      _.forEach(connections[socket.id], publicationNameWithParams => {
-        if (io.sockets.adapter.rooms[publicationNameWithParams] === undefined) {
-          delete cache[publicationNameWithParams];
-        }
-      });
       delete connections[socket.id];
     });
   });

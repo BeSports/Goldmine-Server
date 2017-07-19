@@ -92,7 +92,8 @@ export default class OrientDBQueryBuilder {
       statementParams: this.tempParams.reduce((acc, cur, i) =>  {
         acc['goldmine' + i] = cur;
         return acc;
-      }, {})
+      }, {}),
+        templates: this.templates
     };
   }
 
