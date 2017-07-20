@@ -52,7 +52,6 @@ export function extractParams(publicationNameWithParams) {
 
 export function emitResults(io, roomHash, subName, type, collectionName, target, data, fields) {
   const rid = data['_id'];
-
   data = extractFields(fields, data);
   data['_id'] = rid;
   io.to(roomHash).emit(subName, {
