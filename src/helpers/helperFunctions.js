@@ -50,13 +50,11 @@ export function extractParams(publicationNameWithParams) {
   return params;
 }
 
-export function emitResults(io, subName, type, collectionName, target, data, fields) {
+export function emitResults(io, roomHash, subName, type, collectionName, target, data, fields) {
   const rid = data['_id'];
-
   data = extractFields(fields, data);
   data['_id'] = rid;
-
-  io.sockets.to(subName).emit(subName, {
+  io.to(roomHash).emit(subName, {
     type: type,
     collectionName: collectionName,
     target: target,

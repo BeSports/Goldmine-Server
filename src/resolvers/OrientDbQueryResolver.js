@@ -3,31 +3,25 @@ import pluralize from 'pluralize';
 import { getCollectionName } from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
-  constructor(db, templates, queries, decoded, params) {
+  constructor(db, templates, queries, decoded, allowAll) {
     this.db = db;
-    let templateTemp;
-    if (typeof templates === 'function') {
-      templateTemp = templates(params);
-    } else {
-      templateTemp = templates;
-    }
-    if(templateTemp instanceof Array) {
-      this.templates = _.filter(templateTemp, template => {
-        if (!template.permission) {
+    if (templates instanceof Array) {
+      this.templates = _.filter(templates, template => {
+        if (!template.permission || allowAll) {
           return template;
         } else {
           return template.permission(decoded);
         }
       });
-    } else if(templateTemp.permission && templateTemp.permission(decoded)) {
-      this.templates = templateTemp;
+    } else if ((templates.permission && templates.permission(decoded)) || allowAll) {
+      this.templates = templates;
     } else {
       this.templates = [];
     }
     this.queries = queries;
   }
 
-  resolve(params, cache) {
+  resolve(params) {
     let promises = [];
 
     _.forEach(this.queries, query => {
@@ -39,9 +33,11 @@ export default class OrientDBQueryResolver {
         let result = [];
 
         _.forEach(values, (value, key) => {
+          const response = this.handleResponse(this.templates[key], value);
           result.push({
             collectionName: getCollectionName(this.templates[key]),
-            data: this.handleResponse(this.templates[key], value, cache),
+            data: response.result,
+            cache: response.cache,
           });
         });
 
@@ -52,12 +48,13 @@ export default class OrientDBQueryResolver {
       });
   }
 
-  handleResponse(template, response, cache) {
+  handleResponse(template, response) {
     let result = [];
+    let cache = [];
     _.forEach(response, obj => {
       let formattedObject = {};
       // Add to cache
-      cache.add(obj['_id'].toString());
+      cache.push(obj['_id'].toString());
 
       _.forEach(obj, (value, key) => {
         if (
@@ -69,7 +66,7 @@ export default class OrientDBQueryResolver {
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
           if (key.startsWith('_id')) {
-            cache.add(value.toString());
+            cache.push(value.toString());
           }
         } else if (_.size(template.extend) > 0) {
           const index = key.indexOf('_');
@@ -100,7 +97,7 @@ export default class OrientDBQueryResolver {
                 : item;
 
               if (property.startsWith('_id')) {
-                cache.add(item.toString());
+                cache.push(item.toString());
               }
             });
           } else {
@@ -123,7 +120,7 @@ export default class OrientDBQueryResolver {
                 : tempValue;
 
               if (property.startsWith('_id')) {
-                cache.add(tempValue.toString());
+                cache.push(tempValue.toString());
               }
             } else {
               console.log(
@@ -139,6 +136,9 @@ export default class OrientDBQueryResolver {
       result.push(formattedObject);
     });
 
-    return result;
+    return {
+      result,
+      cache,
+    };
   }
 }
