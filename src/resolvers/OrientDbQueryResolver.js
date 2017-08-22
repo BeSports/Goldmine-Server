@@ -96,9 +96,9 @@ export default class OrientDBQueryResolver {
                 ? item.toString()
                 : item;
 
-              if (property.startsWith('_id')) {
-                cache.push(item.toString());
-              }
+              // if (property.startsWith('_id')) {
+              //   cache.push(item.toString());
+              // }
             });
           } else {
             if (!formattedObject.hasOwnProperty(target)) {
@@ -119,9 +119,9 @@ export default class OrientDBQueryResolver {
                 ? tempValue.toString()
                 : tempValue;
 
-              if (property.startsWith('_id')) {
-                cache.push(tempValue.toString());
-              }
+              // if (property.startsWith('_id')) {
+              //   cache.push(tempValue.toString());
+              // }
             } else {
               console.log(
                 'ERROR: Result in extend "' +
