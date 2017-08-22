@@ -51,7 +51,6 @@ export function extractParams(publicationNameWithParams) {
 }
 
 export function emitResults(io, roomHash, room, type, collectionName, data, fields) {
-  console.log('DATA', data);
   const rid = data['_id'];
   data = extractFields(fields, data);
   data['_id'] = rid;

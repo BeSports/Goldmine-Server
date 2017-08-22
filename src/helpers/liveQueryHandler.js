@@ -35,8 +35,6 @@ export default function(io, db, collectionType) {
     .liveQuery(QUERY)
     .on('live-insert', res => {
       console.log(`INSERT DETECTED (${collectionType.name})`);
-
-      console.log(res);
       const rid = extractRid(res);
       //todo: check filter go on here
       const roomsWithTemplatesForInsert = _.filter(_.map(io.sockets.adapter.rooms, (value, key) => {
