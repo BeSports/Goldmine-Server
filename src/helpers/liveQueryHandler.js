@@ -16,11 +16,6 @@ export default function(io, db, collectionType) {
           if(_.toLower(temp.collection) === _.toLower(collectionName)) {
             return temp.fields;
           }
-          return _.flatten(_.map(temp.extend, (t) => {
-            if(_.toLower(_.get(t, 'target')) === _.toLower(collectionName)) {
-              return t.fields;
-            }
-          }));
         }),
       ));
       emitResults(io, roomKey, room, type, collectionName, res.content, fields);
