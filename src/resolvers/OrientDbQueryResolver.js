@@ -38,6 +38,7 @@ export default class OrientDBQueryResolver {
             collectionName: getCollectionName(this.templates[key]),
             data: response.result,
             cache: response.cache,
+            extendCache: response.extendCache
           });
         });
 
@@ -51,6 +52,7 @@ export default class OrientDBQueryResolver {
   handleResponse(template, response) {
     let result = [];
     let cache = [];
+    let extendCache = [];
     _.forEach(response, obj => {
       let formattedObject = {};
       // Add to cache
@@ -86,7 +88,6 @@ export default class OrientDBQueryResolver {
             if (!formattedObject.hasOwnProperty(target)) {
               formattedObject[target] = [];
             }
-
             _.forEach(value, (item, key) => {
               if (formattedObject[target][key] === undefined) {
                 formattedObject[target][key] = {};
@@ -97,6 +98,10 @@ export default class OrientDBQueryResolver {
                 : item;
 
               if (property.startsWith('_id')) {
+                if(!extendCache[formattedObject._id]) {
+                  extendCache[formattedObject._id] = [];
+                }
+                extendCache[formattedObject._id].push(item.toString());
                 cache.push(item.toString());
               }
             });
@@ -104,7 +109,6 @@ export default class OrientDBQueryResolver {
             if (!formattedObject.hasOwnProperty(target)) {
               formattedObject[target] = {};
             }
-
             if (
               (value instanceof Array && _.size(value) === 1) ||
               (typeof value !== 'object' && !(value instanceof Array))
@@ -114,13 +118,17 @@ export default class OrientDBQueryResolver {
               if (value instanceof Array) {
                 tempValue = value[0];
               }
-
               formattedObject[target][property] = property.startsWith('_id')
                 ? tempValue.toString()
                 : tempValue;
 
               if (property.startsWith('_id')) {
+                if(!extendCache[formattedObject._id]) {
+                  extendCache[formattedObject._id] = [];
+                }
+                extendCache[formattedObject._id].push(tempValue.toString());
                 cache.push(tempValue.toString());
+
               }
             } else {
               console.log(
@@ -139,6 +147,7 @@ export default class OrientDBQueryResolver {
     return {
       result,
       cache,
+      extendCache
     };
   }
 }

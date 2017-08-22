@@ -3,27 +3,16 @@ import OperationTypes from '../enums/OperationTypes';
 import { emitResults, extractRid, getCollectionName } from './helperFunctions';
 import Types from '../enums/Types';
 import insertHandler from './insertHandler';
+import updateHandler from './updateHandler';
 import * as pluralize from 'pluralize';
 
 export default function(io, db, collectionType) {
   const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
 
   const handler = function(roomKey, room, res, type, collectionName) {
-
+    console.log('in handler', roomKey);
     if(type === OperationTypes.UPDATE) {
-      const fields = _.flatten(_.concat(
-        _.map(room.templates, temp => {
-          if(_.toLower(temp.collection) === _.toLower(collectionName)) {
-            return temp.fields;
-          }
-          return _.flatten(_.map(temp.extend, (t) => {
-            if(_.toLower(_.get(t, 'target')) === _.toLower(collectionName)) {
-              return t.fields;
-            }
-          }));
-        }),
-      ));
-      emitResults(io, roomKey, room, type, collectionName, res.content, fields);
+      updateHandler(io, roomKey, room, res, collectionName);
     } else if (type === OperationTypes.DELETE) {
       emitResults(io, roomKey, room, type, collectionName, res.content);
     } else {

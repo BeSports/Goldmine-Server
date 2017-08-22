@@ -199,7 +199,7 @@ const startQuerries = function(Config, publications) {
 
         // Flattens all cache to a single array and return the unique ids
         const cache = _.uniq(_.flatten(_.map(data, 'cache')));
-
+        const extendCache = _.flatten(_.map(data, 'extendCache'));
         // Send data to client who subscribed.
         if (_.get(Config, 'logging.publications', false)) {
           console.log('emitting');
@@ -220,6 +220,7 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
+          io.sockets.adapter.rooms[hash(room)].extendCache = extendCache;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
           io.sockets.adapter.rooms[hash(room)].publicationNameWithParams = publicationNameWithParams;
           io.sockets.adapter.rooms[hash(room)].queries = queries;
