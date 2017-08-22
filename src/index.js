@@ -90,13 +90,13 @@ const startQuerries = function(Config, publications) {
           name: obj.name,
           type: Types.VERTEX,
         });
-        liveQueryHandler(io, db, obj, insertCache);
+        liveQueryHandler(io, db, obj);
       } else if (obj.superClass === 'E') {
         collectionTypes.push({
           name: obj.name,
           type: Types.EDGE,
         });
-        liveQueryHandler(io, db, obj, insertCache);
+        liveQueryHandler(io, db, obj);
       }
     });
   });
@@ -204,7 +204,6 @@ const startQuerries = function(Config, publications) {
         if (_.get(Config, 'logging.publications', false)) {
           console.log('emitting');
         }
-
         socket.emit(payload.publicationNameWithParams, responsePayload);
         if (payload.isReactive) {
           // Add publication to client's personal placeholder.
@@ -247,7 +246,9 @@ const startQuerries = function(Config, publications) {
       const roomToRemove = _.first(_.pullAt(connections[socket.id], _.findIndex(connections[socket.id], ['publicationNameWithParams', payload.publicationNameWithParams])));
 
       // Remove socket from socket.io publication room.
-      socket.leave(hash(roomToRemove));
+      if(roomToRemove) {
+        socket.leave(hash(roomToRemove));
+      }
     });
 
     // ----------------------------------------------------

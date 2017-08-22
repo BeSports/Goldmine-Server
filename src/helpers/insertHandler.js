@@ -14,30 +14,32 @@ import OperationTypes from '../enums/OperationTypes';
  * @param cache
  */
 export default function insertHandler(io, db, room, roomHash, collectionType, res) {
+  console.log('insertHandler');
+  console.log('roomhash', roomHash);
   const id = res.content['_id'];
   // TODO: optimization, remove unused templates for performance increase
   const resolver = new Resolver(db, room.templates, room.queries, {}, true);
-  const fields = _.concat(
+  const fields = _.flatten(_.concat(
     _.map(
       _.filter(room.templates, t => {
         return _.lowerCase(t.collection) === _.lowerCase(collectionType.name);
       }),
       'fields',
     ),
-  );
+  ));
 
   resolver.resolve(room.queryParams).then(result => {
-    let data = _.find(result[0].data, { _id: id });
+    let data = _.find(result[0].data, ['_id', id]);
 
     if (data !== undefined) {
+      console.log(roomHash);
       io.sockets.adapter.rooms[roomHash].cache.push(id);
       emitResults(
         io,
         roomHash,
-        room.publicationNameWithParams,
+        room,
         OperationTypes.INSERT,
-        data['@class'],
-        undefined,
+        collectionType.name,
         data,
         fields,
       );
