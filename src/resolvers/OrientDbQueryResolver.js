@@ -58,10 +58,8 @@ export default class OrientDBQueryResolver {
 
       _.forEach(obj, (value, key) => {
         if (
-          key.startsWith('_') ||
-          key.startsWith('in_') ||
-          key.startsWith('out_') ||
-          !key.includes('_')
+          !key.startsWith('in_') ||
+          !key.startsWith('out_')
         ) {
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
