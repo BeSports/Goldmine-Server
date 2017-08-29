@@ -58,16 +58,22 @@ export default class OrientDBQueryResolver {
 
       _.forEach(obj, (value, key) => {
         if (
-          !key.startsWith('in_') ||
-          !key.startsWith('out_')
+          key.startsWith('in_') ||
+          key.startsWith('out_') ||
+          !key.includes('§') ||
+          key.startsWith('_')
         ) {
+          if(key.startsWith('in_') ||
+            key.startsWith('out_') ) {
+            return;
+          }
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
           if (key.startsWith('_id')) {
             cache.push(value.toString());
           }
         } else if (_.size(template.extend) > 0) {
-          const index = key.indexOf('_');
+          const index = key.indexOf('§');
           const target = key.substr(0, index);
           const property = key.substr(index + 1);
 
