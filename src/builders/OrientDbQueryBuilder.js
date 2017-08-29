@@ -60,15 +60,19 @@ export default class OrientDBQueryBuilder {
         paginationStmt = this.buildPaginationStmt(template);
 
         // EXTENDS
-        const extendFields = this.buildExtends(template.extend, '');
-        selectStmt += `, ${extendFields.selectStmt}`;
-        if (_.size(whereStmt) !== 0) {
-          if (_.size(extendFields.whereStmt) !== 0) {
-            whereStmt += ` AND ${extendFields.whereStmt}`;
+        if(template.extend) {
+          const extendFields = this.buildExtends(template.extend, '');
+          console.log(extendFields);
+          selectStmt += `, ${extendFields.selectStmt}`;
+          if (_.size(whereStmt) !== 0) {
+            if (_.size(extendFields.whereStmt) !== 0) {
+              whereStmt += ` AND ${extendFields.whereStmt}`;
+            }
+          } else {
+            whereStmt = extendFields.whereStmt;
           }
-        } else {
-          whereStmt = extendFields.whereStmt;
         }
+
 
         // Add statement
         statements.push(
@@ -96,8 +100,9 @@ export default class OrientDBQueryBuilder {
     let selectStmt = '';
     let whereStmt = '';
     _.map(extend, (e) => {
-      selectStmt += `, ${this.buildSelectStmt(extend, parent)}`;
-      const tempWhereStmt = this.buildWhereStmt(extend, parent);
+      console.log(this.buildSelectStmt(e, parent));
+      selectStmt += `${selectStmt ? ', ' : ''}${this.buildSelectStmt(e, parent)}`;
+      const tempWhereStmt = this.buildWhereStmt(e, parent);
       if(e.extend) {
         const extendFields =  this.buildExtends(e.extend, parent + `both(${e.relation}).`);
         selectStmt += `, ${extendFields.selectStmt}`;
@@ -121,7 +126,7 @@ export default class OrientDBQueryBuilder {
     return {
       selectStmt,
       whereStmt
-    }
+    };
   }
 
   setNextParamAvailable(value) {
@@ -133,9 +138,9 @@ export default class OrientDBQueryBuilder {
     let res = '';
     //extends
     if (template.target !== undefined) {
-      const edge = this.buildEdge(template.relation, template.direction);
+      const edge = (parent ? parent : '') + this.buildEdge(template.relation, template.direction);
 
-      res += `${parent ? parent : ''}${edge}["_id"] AS \`${template.target}§_id\``;
+      res += `${edge}["_id"] AS \`${template.target}§_id\``;
 
       _.forEach(template.fields, field => {
         let tempEdge = edge;
@@ -173,10 +178,10 @@ export default class OrientDBQueryBuilder {
     return res;
   }
 
-  buildWhereStmt(template) {
+  buildWhereStmt(template, parent) {
     let edge = '';
     if (template.target !== undefined) {
-      edge = this.buildEdge(template.relation, template.direction);
+      edge = parent + '' + this.buildEdge(template.relation, template.direction);
     }
     let res = '';
     if (template.params instanceof Object) {
