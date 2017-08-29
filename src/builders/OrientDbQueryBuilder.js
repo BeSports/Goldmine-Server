@@ -60,21 +60,15 @@ export default class OrientDBQueryBuilder {
         paginationStmt = this.buildPaginationStmt(template);
 
         // EXTENDS
-        _.forEach(template.extend, extend => {
-          // select statement
-          selectStmt += `, ${this.buildSelectStmt(extend)}`;
-
-          // where statement
-          const tempWhereStmt = this.buildWhereStmt(extend);
-
-          if (_.size(whereStmt) !== 0) {
-            if (_.size(tempWhereStmt) !== 0) {
-              whereStmt += ` AND ${tempWhereStmt}`;
-            }
-          } else {
-            whereStmt = tempWhereStmt;
+        const extendFields = this.buildExtends(template.extend, '');
+        selectStmt += `, ${extendFields.selectStmt}`;
+        if (_.size(whereStmt) !== 0) {
+          if (_.size(extendFields.whereStmt) !== 0) {
+            whereStmt += ` AND ${extendFields.whereStmt}`;
           }
-        });
+        } else {
+          whereStmt = extendFields.whereStmt;
+        }
 
         // Add statement
         statements.push(
@@ -97,18 +91,51 @@ export default class OrientDBQueryBuilder {
     };
   }
 
+  buildExtends(extend, parent) {
+    // select statement
+    let selectStmt = '';
+    let whereStmt = '';
+    _.map(extend, (e) => {
+      selectStmt += `, ${this.buildSelectStmt(extend, parent)}`;
+      const tempWhereStmt = this.buildWhereStmt(extend, parent);
+      if(e.extend) {
+        const extendFields =  this.buildExtends(e.extend, parent + `both(${e.relation}).`);
+        selectStmt += `, ${extendFields.selectStmt}`;
+        if (_.size(whereStmt) !== 0) {
+          if (_.size(extendFields.whereStmt) !== 0) {
+            whereStmt += ` AND ${extendFields.whereStmt}`;
+          }
+        } else {
+          whereStmt = extendFields.whereStmt;
+        }
+      }
+      if (_.size(whereStmt) !== 0) {
+        if (_.size(tempWhereStmt) !== 0) {
+          whereStmt += ` AND ${tempWhereStmt}`;
+        }
+      } else {
+        whereStmt = tempWhereStmt;
+      }
+    });
+
+    return {
+      selectStmt,
+      whereStmt
+    }
+  }
+
   setNextParamAvailable(value) {
     this.tempParams.push(value);
     return _.size(this.tempParams) - 1;
   }
 
-  buildSelectStmt(template) {
+  buildSelectStmt(template, parent) {
     let res = '';
     //extends
     if (template.target !== undefined) {
       const edge = this.buildEdge(template.relation, template.direction);
 
-      res += `${edge}["_id"] AS \`${template.target}__id\``;
+      res += `${parent ? parent : ''}${edge}["_id"] AS \`${template.target}__id\``;
 
       _.forEach(template.fields, field => {
         let tempEdge = edge;
