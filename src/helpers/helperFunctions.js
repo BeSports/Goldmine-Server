@@ -86,3 +86,15 @@ export function serverParamsUsed(publication, decoded) {
   //TODO
   return;
 }
+
+export function flattenExtend(extend) {
+  let extendArray = [];
+  if(extend) {
+    const newExtends = _.flatten(_.map(extend, (e) => {
+      extendArray.push(e);
+      return flattenExtend(e.extend);
+    }));
+    extendArray.push(newExtends);
+  }
+  return extendArray;
+}
