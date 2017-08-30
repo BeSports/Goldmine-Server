@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import pluralize from 'pluralize';
-import { getCollectionName } from '../helpers/helperFunctions';
+import {flattenExtend, getCollectionName} from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
   constructor(db, templates, queries, decoded, allowAll) {
@@ -79,14 +79,14 @@ export default class OrientDBQueryResolver {
 
           let tempExtend = '';
 
-          _.forEach(template.extend, extend => {
+          _.forEach(flattenExtend(template.extend), extend => {
             if (extend.target === target) {
               tempExtend = extend;
               return false;
             }
           });
 
-          if (tempExtend !== '' && (tempExtend.multi === undefined || tempExtend.multi)) {
+          if (tempExtend !== '' && tempExtend.multi === true) {
             if (!formattedObject.hasOwnProperty(target)) {
               formattedObject[target] = [];
             }
@@ -100,39 +100,9 @@ export default class OrientDBQueryResolver {
                 ? item.toString()
                 : item;
 
-              // if (property.startsWith('_id')) {
-              //   cache.push(item.toString());
-              // }
             });
           } else {
-            if (!formattedObject.hasOwnProperty(target)) {
-              formattedObject[target] = {};
-            }
-
-            if (
-              (value instanceof Array && _.size(value) === 1) ||
-              (typeof value !== 'object' && !(value instanceof Array))
-            ) {
-              let tempValue = value;
-
-              if (value instanceof Array) {
-                tempValue = value[0];
-              }
-
-              formattedObject[target][property] = property.startsWith('_id')
-                ? tempValue.toString()
-                : tempValue;
-
-              // if (property.startsWith('_id')) {
-              //   cache.push(tempValue.toString());
-              // }
-            } else {
-              console.log(
-                'ERROR: Result in extend "' +
-                  target +
-                  '" contains more than one element. Change multi to true or remove it.',
-              );
-            }
+            _.set(formattedObject, `${target}.${_.replace(property, '§', '.')}`, value instanceof Array && _.size(value) === 1 ? value[0] : value);
           }
         }
       });
