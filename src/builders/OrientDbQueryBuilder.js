@@ -62,8 +62,7 @@ export default class OrientDBQueryBuilder {
         // EXTENDS
         if(template.extend) {
           const extendFields = this.buildExtends(template.extend, '');
-          console.log(extendFields);
-          selectStmt += `, ${extendFields.selectStmt}`;
+          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 ? ', ' : ' '} ${extendFields.selectStmt}`;
           if (_.size(whereStmt) !== 0) {
             if (_.size(extendFields.whereStmt) !== 0) {
               whereStmt += ` AND ${extendFields.whereStmt}`;
@@ -100,12 +99,13 @@ export default class OrientDBQueryBuilder {
     let selectStmt = '';
     let whereStmt = '';
     _.map(extend, (e) => {
-      console.log(this.buildSelectStmt(e, parent));
-      selectStmt += `${selectStmt ? ', ' : ''}${this.buildSelectStmt(e, parent)}`;
+      const buildSelect = this.buildSelectStmt(e, parent);
+      console.log(_.size(_.trim(selectStmt)), _.size(_.trim(buildSelect)), buildSelect, selectStmt);
+      selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0 ? ', ' : ''}${buildSelect}`;
       const tempWhereStmt = this.buildWhereStmt(e, parent);
       if(e.extend) {
         const extendFields =  this.buildExtends(e.extend, parent + `both(${e.relation}).`);
-        selectStmt += `, ${extendFields.selectStmt}`;
+        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(extendFields.selectStmt)) !== 0 ? ', ' : ''}${extendFields.selectStmt}`;
         if (_.size(whereStmt) !== 0) {
           if (_.size(extendFields.whereStmt) !== 0) {
             whereStmt += ` AND ${extendFields.whereStmt}`;
@@ -139,24 +139,24 @@ export default class OrientDBQueryBuilder {
     //extends
     if (template.target !== undefined) {
       const edge = (parent ? parent : '') + this.buildEdge(template.relation, template.direction);
+      if(template.fields !== null) {
+        res += `${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
 
-      res += `${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
+        _.forEach(template.fields, field => {
+          if(field === '_id') {
+            return;
+          }
+          let tempEdge = edge;
+          let tempField = field;
 
-      _.forEach(template.fields, field => {
-        if(field === '_id') {
-          return;
-        }
-        let tempEdge = edge;
-        let tempField = field;
+          if (field.startsWith('e_')) {
+            tempEdge = this.buildEdge(template.relation, template.direction, true);
+            tempField = field.substr(2);
+          }
 
-        if (field.startsWith('e_')) {
-          tempEdge = this.buildEdge(template.relation, template.direction, true);
-          tempField = field.substr(2);
-        }
-
-        res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(template.target, '.', '§')}§${tempField}\``;
-      });
-
+          res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(template.target, '.', '§')}§${tempField}\``;
+        });
+      }
       // main class subscribed on
     } else {
       const size = _.size(template.fields);
