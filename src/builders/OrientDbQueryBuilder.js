@@ -100,7 +100,6 @@ export default class OrientDBQueryBuilder {
     let whereStmt = '';
     _.map(extend, (e) => {
       const buildSelect = this.buildSelectStmt(e, parent);
-      console.log(_.size(_.trim(selectStmt)), _.size(_.trim(buildSelect)), buildSelect, selectStmt);
       selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0 ? ', ' : ''}${buildSelect}`;
       const tempWhereStmt = this.buildWhereStmt(e, parent);
       if(e.extend) {
@@ -229,7 +228,7 @@ export default class OrientDBQueryBuilder {
     } else if (propertyObject.value !== undefined) {
       return this.buildPropertyValuePair(propertyName, propertyObject.value, '=', edge);
     } else if (propertyObject.operator !== undefined) {
-      return this.buildPropertyValuePair(propertyName, false, propertyObject.operator, edge);
+      return this.buildPropertyValuePair(propertyName, null, propertyObject.operator, edge);
     }
     return '';
   }
@@ -237,7 +236,7 @@ export default class OrientDBQueryBuilder {
   // preset goldmine since number are not recognized as params by orientjs
   buildPropertyValuePair(property, value, operator, edge) {
     const tempParamIndex = this.setNextParamAvailable(value);
-    if(value === false) {
+    if(value === null) {
       if (edge) {
         return ` ${edge}["${property}"] ${operator}`;
       }
