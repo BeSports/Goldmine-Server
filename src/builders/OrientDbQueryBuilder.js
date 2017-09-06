@@ -164,17 +164,17 @@ export default class OrientDBQueryBuilder {
         res += `_id`;
 
         _.forEach(template.fields, field => {
-          if (template.collection.type === Types.EDGE) {
-            res += `, ${field} AS \`${field.replace('.','_')}\``;
-          }
-          else {
-            res += `, ${field}`;
-          }
+          res += `, ${field}`;
         });
       }
       else {
         res += '*';
       }
+    }
+    if(template.edgeFields) {
+      _.forEach(template.edgeFields, field => {
+        res += `, bothE()[\"${field}\"] as ${field}`;
+      });
     }
 
     return res;
