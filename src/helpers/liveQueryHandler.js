@@ -29,8 +29,8 @@ export default function(io, db, collectionType) {
   db
     .liveQuery(QUERY)
     .on('live-insert', res => {
-      console.log(`INSERT DETECTED (${collectionType.name})`);
       const rid = extractRid(res);
+      console.log(`INSERT DETECTED (${collectionType.name})(${rid})`);
       //todo: check filter go on here
       const roomsWithTemplatesForInsert = _.filter(_.map(io.sockets.adapter.rooms, (value, key) => {
         return _.find(value.templates, ['collection', collectionType.name]) ? { room: value, hash: key } : null;
@@ -51,15 +51,19 @@ export default function(io, db, collectionType) {
       );
     })
     .on('live-update', res => {
-      console.log(`UPDATE DETECTED (${collectionType.name})`);
+      const rid = extractRid(res);
+      console.log(`UPDATE DETECTED (${collectionType.name})(${rid})`);
 
       let roomsToUpdate = [];
+      let possiblyInNeedOfInsert = [];
       _.forEach(io.sockets.adapter.rooms, (value, key) => {
         if (_.includes(value.cache, res.content._id)) {
           roomsToUpdate.push({
             key,
             value,
           });
+        } else if(_.find(value.templates, ['collection', collectionType.name])) {
+          possiblyInNeedOfInsert.push({ room: value, hash: key });
         }
       });
 
@@ -73,9 +77,23 @@ export default function(io, db, collectionType) {
           collectionType.name,
         );
       });
+
+      _.forEach(possiblyInNeedOfInsert, (room, key) => {
+          insertHandler(
+            io,
+            db,
+            room.room,
+            room.hash,
+            collectionType,
+            res,
+          );
+        }
+      );
+
     })
     .on('live-delete', res => {
-      console.log(`DELETE DETECTED (${collectionType.name})`);
+      const rid = extractRid(res);
+      console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
       let roomsToRemoveFrom = [];
       _.forEach(io.sockets.adapter.rooms, (value, key) => {
         if (_.includes(value.cache, res.content._id)) {

@@ -72,7 +72,7 @@ export default class OrientDBQueryResolver {
           if (key.startsWith('_id')) {
             cache.push(value.toString());
           }
-        } else if (_.size(template.extend) > 0) {
+        } else if (_.size(_.get(template, 'extend')) > 0) {
           const index = key.indexOf('§');
           const target = key.substr(0, index);
           const property = key.substr(index + 1);
