@@ -137,9 +137,9 @@ export default class OrientDBQueryBuilder {
   }
 
   fastQuerryBuilder (template) {
-    let query = `select expand(bothV()[@class='${template.collection}']) from (`;
+    let query = `select expand(bothV()[@class="${template.collection}"]) from (`;
     query += `select expand(bothE(${template.extend[0].relation})) from ${template.extend[0].collection} where ${this.buildWhereStmt(_.pick(template.extend[0], ['collection', 'params']), '')})`;
-    query + ')';
+    query += this.buildWhereStmt(template) ? ` where ${this.buildWhereStmt(template)}` : '';
     return query;
   }
 
