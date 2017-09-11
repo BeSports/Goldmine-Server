@@ -6,6 +6,7 @@ import DirectionTypes from "../enums/DirectionTypes";
 export default class OrientDBQueryBuilder {
   constructor(templates, params, decoded) {
     let templateTemp;
+
     if (typeof templates === 'function') {
       templateTemp = templates(params);
     } else {
@@ -33,7 +34,9 @@ export default class OrientDBQueryBuilder {
     _.forEach(this.templates, template => {
       if (typeof template === 'string') {
         statements.push(template);
-      } else {
+      } else if (template.fast) {
+        statements.push(this.fastQuerryBuilder(template));
+      } else  {
         if(!template.collection) {
           console.log(`No collection name was provided to ${template}`);
         }
@@ -132,6 +135,14 @@ export default class OrientDBQueryBuilder {
     this.tempParams.push(value);
     return _.size(this.tempParams) - 1;
   }
+
+  fastQuerryBuilder (template) {
+    let query = `select expand(bothV()[@class='${template.collection}']) from (`;
+    query += `select expand(bothE(${template.extend[0].relation})) from ${template.extend[0].collection} where ${this.buildWhereStmt(_.pick(template.extend[0], ['collection', 'params']), '')})`;
+    query + ')';
+    return query;
+  }
+
 
   buildSelectStmt(template, parent) {
     let res = '';
