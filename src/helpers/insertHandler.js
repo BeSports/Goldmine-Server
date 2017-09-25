@@ -14,6 +14,8 @@ import OperationTypes from '../enums/OperationTypes';
  */
 export default function insertHandler(io, db, room, roomHash, collectionType, res) {
   const id = res.content['_id'];
+  const rid = extractRid(res);
+
   let filteredRoomQueries = [];
   const filteredTemplates = _.filter(room.templates, (t, i) => {
     if (_.lowerCase(t.collection) === _.lowerCase(collectionType.name)) {
@@ -31,7 +33,7 @@ export default function insertHandler(io, db, room, roomHash, collectionType, re
   resolver.resolve(room.queryParams).then(result => {
     let data = _.find(_.flatten(_.map(result, 'data')), ['_id', id]);
     if (data !== undefined) {
-      io.sockets.adapter.rooms[roomHash].cache.push(id);
+      io.sockets.adapter.rooms[roomHash].cache.push(rid);
       emitResults(io, roomHash, room, OperationTypes.INSERT, collectionType.name, data, undefined);
     }
   });
