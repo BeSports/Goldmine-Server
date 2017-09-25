@@ -52,9 +52,7 @@ export function extractParams(publicationNameWithParams) {
 }
 
 export function emitResults(io, roomHash, room, type, collectionName, data, fields) {
-  const rid = data['_id'];
   data = extractFields(fields, data);
-  data['_id'] = rid;
   io.to(roomHash).emit(room.publicationNameWithParams, {
     type: type,
     collectionName: pluralize(collectionName),
@@ -64,12 +62,15 @@ export function emitResults(io, roomHash, room, type, collectionName, data, fiel
 
 export function extractFields(fields, data) {
   if (fields === undefined) {
+    delete data['@rid'];
+    delete data['@type'];
+    delete data['@version'];
     return data;
   }
-
   let result = {};
 
   result['_id'] = data['_id'];
+  result['rid'] = data['rid'];
 
   _.forEach(fields, field => {
     result[field] = data[field];

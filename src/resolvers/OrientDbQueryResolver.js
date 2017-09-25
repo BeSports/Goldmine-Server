@@ -23,7 +23,6 @@ export default class OrientDBQueryResolver {
 
   resolve(params) {
     let promises = [];
-
     _.forEach(this.queries, query => {
       promises.push(this.db.query(query, { params }));
     });
@@ -54,14 +53,17 @@ export default class OrientDBQueryResolver {
     _.forEach(response, obj => {
       let formattedObject = {};
       // Add to cache
-      cache.push(obj['_id'].toString());
+      if(_.has(obj, 'rid')) {
+        cache.push(obj['rid'].toString());
+      }
 
       _.forEach(obj, (value, key) => {
         if (
           key.startsWith('in_') ||
           key.startsWith('out_') ||
           !key.includes('§') ||
-          key.startsWith('_')
+          key.startsWith('_') ||
+          key.startsWith('rid')
         ) {
           if(key.startsWith('in_') ||
             key.startsWith('out_') ) {
@@ -69,7 +71,7 @@ export default class OrientDBQueryResolver {
           }
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
 
-          if (key.startsWith('_id')) {
+          if (key.startsWith('rid')) {
             cache.push(value.toString());
           }
         } else if (_.size(_.get(template, 'extend')) > 0) {

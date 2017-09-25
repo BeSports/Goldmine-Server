@@ -255,8 +255,8 @@ const startQuerries = function(Config, publications) {
     // ----------------------------------------------------
 
     if (Config.auth) {
-      socket.on('authenticate', data => {
-        const authentication = Config.auth.validator(data);
+      socket.on('authenticate', async data => {
+        const authentication = await Config.auth.validator(data);
         if (!authentication) {
           socket.disconnect('Failed to authenticate token ', socket.id);
         } else {

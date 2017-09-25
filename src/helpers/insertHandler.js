@@ -32,7 +32,7 @@ export default function insertHandler(io, db, room, roomHash, collectionType, re
     let data = _.find(_.flatten(_.map(result, 'data')), ['_id', id]);
     if (data !== undefined) {
       io.sockets.adapter.rooms[roomHash].cache.push(id);
-      emitResults(io, roomHash, room, OperationTypes.INSERT, collectionType.name, data, _.size(fields) === 0 ? undefined : fields);
+      emitResults(io, roomHash, room, OperationTypes.INSERT, collectionType.name, data, undefined);
     }
   });
 }

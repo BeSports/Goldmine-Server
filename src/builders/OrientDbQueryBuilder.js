@@ -150,7 +150,7 @@ export default class OrientDBQueryBuilder {
     if (template.target !== undefined) {
       const edge = (parent ? parent : '') + this.buildEdge(template.relation, template.direction);
       if(template.fields !== null) {
-        res += `${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
+        res += ` ${edge}["@rid"] AS \`${_.replace(template.target, '.', '§')}§@rid\`, ${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
 
         _.forEach(template.fields, field => {
           if(field === '_id') {
@@ -172,7 +172,7 @@ export default class OrientDBQueryBuilder {
       const size = _.size(template.fields);
 
       if (size !== 0) {
-        res += `_id`;
+        res += `@rid, _id `;
 
         _.forEach(template.fields, field => {
           res += `, ${field}`;
