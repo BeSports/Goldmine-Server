@@ -169,7 +169,7 @@ export default class OrientDBQueryBuilder {
       }
       if(template.edgeFields) {
         _.forEach(template.edgeFields, field => {
-          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] as ${field}`;
+          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] AS \`${_.replace(template.target, '.', '§')}§${field}\``;
         });
       }
       // main class subscribed on
