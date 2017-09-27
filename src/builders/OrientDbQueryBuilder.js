@@ -167,6 +167,11 @@ export default class OrientDBQueryBuilder {
           res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(template.target, '.', '§')}§${tempField}\``;
         });
       }
+      if(template.edgeFields) {
+        _.forEach(template.edgeFields, field => {
+          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] as ${field}`;
+        });
+      }
       // main class subscribed on
     } else {
       const size = _.size(template.fields);
@@ -182,11 +187,7 @@ export default class OrientDBQueryBuilder {
         res += '*';
       }
     }
-    if(template.edgeFields) {
-      _.forEach(template.edgeFields, field => {
-        res += `, bothE()[\"${field}\"] as ${field}`;
-      });
-    }
+
 
     return res;
   }
