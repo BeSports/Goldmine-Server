@@ -2,6 +2,8 @@
 
 # GoldmineJS - Server
 
+[![NPM](https://nodei.co/npm/goldmine-server.png?downloads=true&downloadRank=true)](https://nodei.co/npm/goldmine-server/)
+
 Documentation needs to be updated, if you would like to use the newer version, wait until it gets updated or contact [me](mailto:michiel@kayzr.com) for instant updates
 
 ## Introduction
