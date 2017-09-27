@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import OperationTypes from '../enums/OperationTypes';
-import { emitResults, extractRid, getCollectionName } from './helperFunctions';
+import { emitResults, extractRid, getCollectionName, getEdgeFieldsForExtendOverRelation } from './helperFunctions';
 import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
@@ -11,13 +11,7 @@ export default function(io, db, collectionType) {
   const handler = function(roomKey, room, res, type, collectionName, rid) {
     if (type === OperationTypes.UPDATE) {
       if (_.includes(res.content['@class'], '_')) {
-        const edgeFields = _.flatten(
-          _.concat(
-            _.map(room.templates, temp => {
-                return temp.edgeFields;
-            }),
-          ),
-        );
+        const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
         const resObject = res.content;
         resObject.rid = rid;
         const collection = _.get(_.find(room.templates, (t) => {
@@ -76,6 +70,7 @@ export default function(io, db, collectionType) {
       }
       let roomsToUpdate = [];
       const rid = extractRid(res);
+      res.content.rid = rid;
       console.log(`UPDATE DETECTED (${collectionType.name})(${rid})(version:${res.version})`);
       if (_.includes(res.content['@class'], '_')) {
         const inV = '#' + res.content.in.cluster + ':' + res.content.in.position;

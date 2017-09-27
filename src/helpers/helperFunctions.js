@@ -99,3 +99,10 @@ export function flattenExtend(extend) {
   }
   return extendArray;
 }
+
+export function getEdgeFieldsForExtendOverRelation(template, relation) {
+  const flattened = _.flattenDeep(flattenExtend(template));
+  let flatFiltered = _.filter(_.filter(flattened, { relation }), 'edgeFields');
+  let edgeFields = _.flattenDeep(_.map(flatFiltered, 'edgeFields'));
+  return edgeFields;
+}

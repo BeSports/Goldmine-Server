@@ -24,7 +24,6 @@ export default function insertHandler(io, db, room, roomHash, collectionType, re
     }
     return false;
   });
-  // TODO: optimization, remove unused templates for performance increase
   const resolver = new Resolver(db, filteredTemplates, filteredRoomQueries, {}, true);
   const fields = _.filter(_.flatten(_.concat(_.map(filteredTemplates, 'fields'))), f => {
     return !!f;
