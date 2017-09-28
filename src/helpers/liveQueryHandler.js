@@ -11,16 +11,17 @@ export default function(io, db, collectionType) {
   const handler = function(roomKey, room, res, type, collectionName, rid) {
     if (type === OperationTypes.UPDATE) {
       if (_.includes(res.content['@class'], '_')) {
-        const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
-        const resObject = res.content;
-        resObject.rid = rid;
-        const collection = _.get(_.find(room.templates, (t) => {
-          return _.find(t.extend, ['relation', collectionName]);
-        }), 'collection');
-        if(!collection) {
-          return;
-        }
-        emitResults(io, roomKey, room, type, collection, resObject, edgeFields);
+        return null;
+        // const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
+        // const resObject = res.content;
+        // resObject.rid = rid;
+        // const collection = _.get(_.find(room.templates, (t) => {
+        //   return _.find(t.extend, ['relation', collectionName]);
+        // }), 'collection');
+        // if(!collection) {
+        //   return;
+        // }
+        // emitResults(io, roomKey, room, type, collection, resObject, edgeFields);
       } else {
         const fields = _.flatten(
           _.concat(
