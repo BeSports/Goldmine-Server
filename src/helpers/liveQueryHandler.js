@@ -1,6 +1,11 @@
 import _ from 'lodash';
 import OperationTypes from '../enums/OperationTypes';
-import { emitResults, extractRid, getCollectionName, getEdgeFieldsForExtendOverRelation } from './helperFunctions';
+import {
+  emitResults,
+  extractRid,
+  getCollectionName,
+  getEdgeFieldsForExtendOverRelation,
+} from './helperFunctions';
 import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
@@ -11,17 +16,24 @@ export default function(io, db, collectionType) {
   const handler = function(roomKey, room, res, type, collectionName, rid) {
     if (type === OperationTypes.UPDATE) {
       if (_.includes(res.content['@class'], '_')) {
-        return null;
-        // const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
-        // const resObject = res.content;
-        // resObject.rid = rid;
-        // const collection = _.get(_.find(room.templates, (t) => {
-        //   return _.find(t.extend, ['relation', collectionName]);
-        // }), 'collection');
-        // if(!collection) {
-        //   return;
-        // }
-        // emitResults(io, roomKey, room, type, collection, resObject, edgeFields);
+        const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
+        const resObject = res.content;
+        resObject.rid = rid;
+        const object = {
+          rid,
+        };
+        const collection = _.get(
+          _.find(room.templates, t => {
+            const correctExtend = _.find(t.extend, ['relation', collectionName]);
+            object[`${_.get(correctExtend, 'target')}`] = _.pick(res.content, edgeFields);
+            return correctExtend;
+          }),
+          'collection',
+        );
+        if (!collection) {
+          return;
+        }
+        emitResults(io, roomKey, room, type, collection, resObject);
       } else {
         const fields = _.flatten(
           _.concat(
@@ -81,7 +93,7 @@ export default function(io, db, collectionType) {
             roomsToUpdate.push({
               key,
               value,
-              relatedRID: _.includes(value.cache, inV) ? inV : outV
+              relatedRID: _.includes(value.cache, inV) ? inV : outV,
             });
           }
         });
@@ -98,7 +110,14 @@ export default function(io, db, collectionType) {
 
       _.forEach(roomsToUpdate, room => {
         // Template - root level
-        handler(room.key, room.value, res, OperationTypes.UPDATE, collectionType.name, _.get(room, 'relatedRID', null));
+        handler(
+          room.key,
+          room.value,
+          res,
+          OperationTypes.UPDATE,
+          collectionType.name,
+          _.get(room, 'relatedRID', null),
+        );
       });
 
       // _.forEach(possiblyInNeedOfInsert, (room, key) => {
@@ -118,7 +137,7 @@ export default function(io, db, collectionType) {
       console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
       let roomsToRemoveFrom = [];
       _.forEach(io.sockets.adapter.rooms, (value, key) => {
-        if (_.includes(value.cache, res.content._id)) {
+        if (_.includes(value.cache, rid)) {
           roomsToRemoveFrom.push({
             key,
             value,
@@ -129,7 +148,7 @@ export default function(io, db, collectionType) {
       _.forEach(roomsToRemoveFrom, room => {
         // Template - root level
         handler(room.key, room.value, res, OperationTypes.DELETE, collectionType.name);
-        _.remove(io.sockets.adapter.rooms[room.key].cache, res.content._id);
+        _.remove(io.sockets.adapter.rooms[room.key].cache, rid);
       });
     });
 }

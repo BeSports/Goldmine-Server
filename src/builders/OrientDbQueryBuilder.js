@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import OrderTypes from '../enums/OrderTypes';
-import Types from "../enums/Types";
-import DirectionTypes from "../enums/DirectionTypes";
+import Types from '../enums/Types';
+import DirectionTypes from '../enums/DirectionTypes';
 
 export default class OrientDBQueryBuilder {
   constructor(templates, params, decoded) {
@@ -12,7 +12,7 @@ export default class OrientDBQueryBuilder {
     } else {
       templateTemp = templates;
     }
-    if(templateTemp instanceof Array) {
+    if (templateTemp instanceof Array) {
       this.templates = _.filter(templateTemp, template => {
         if (!template.permission) {
           return template;
@@ -20,7 +20,7 @@ export default class OrientDBQueryBuilder {
           return template.permission(decoded);
         }
       });
-    } else if(templateTemp.permission && templateTemp.permission(decoded)) {
+    } else if (templateTemp.permission && templateTemp.permission(decoded)) {
       this.templates = templateTemp;
     } else {
       this.templates = [];
@@ -36,11 +36,11 @@ export default class OrientDBQueryBuilder {
         statements.push(template);
       } else if (template.fast) {
         statements.push(this.fastQuerryBuilder(template));
-      } else  {
-        if(!template.collection) {
+      } else {
+        if (!template.collection) {
           console.log(`No collection name was provided to ${template}`);
         }
-        
+
         let selectStmt = null;
         let fromStmt = null;
         let whereStmt = null;
@@ -63,9 +63,12 @@ export default class OrientDBQueryBuilder {
         paginationStmt = this.buildPaginationStmt(template);
 
         // EXTENDS
-        if(template.extend) {
+        if (template.extend) {
           const extendFields = this.buildExtends(template.extend, '');
-          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(extendFields.selectStmt)) !== 0 ? ', ' : ' '} ${extendFields.selectStmt}`;
+          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
+          _.size(_.trim(extendFields.selectStmt)) !== 0
+            ? ', '
+            : ' '} ${extendFields.selectStmt}`;
           if (_.size(whereStmt) !== 0) {
             if (_.size(extendFields.whereStmt) !== 0) {
               whereStmt += ` AND ${extendFields.whereStmt}`;
@@ -74,7 +77,6 @@ export default class OrientDBQueryBuilder {
             whereStmt = extendFields.whereStmt;
           }
         }
-
 
         // Add statement
         statements.push(
@@ -89,11 +91,11 @@ export default class OrientDBQueryBuilder {
 
     return {
       statements,
-      statementParams: this.tempParams.reduce((acc, cur, i) =>  {
+      statementParams: this.tempParams.reduce((acc, cur, i) => {
         acc['goldmine' + i] = cur;
         return acc;
       }, {}),
-        templates: this.templates
+      templates: this.templates,
     };
   }
 
@@ -101,13 +103,18 @@ export default class OrientDBQueryBuilder {
     // select statement
     let selectStmt = '';
     let whereStmt = '';
-    _.map(extend, (e) => {
+    _.map(extend, e => {
       const buildSelect = this.buildSelectStmt(e, parent);
-      selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0 ? ', ' : ''}${buildSelect}`;
+      selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0
+        ? ', '
+        : ''}${buildSelect}`;
       const tempWhereStmt = this.buildWhereStmt(e, parent);
-      if(e.extend) {
-        const extendFields =  this.buildExtends(e.extend, parent + `both(${e.relation}).`);
-        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(extendFields.selectStmt)) !== 0 ? ', ' : ''}${extendFields.selectStmt}`;
+      if (e.extend) {
+        const extendFields = this.buildExtends(e.extend, parent + `both(${e.relation}).`);
+        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
+        _.size(_.trim(extendFields.selectStmt)) !== 0
+          ? ', '
+          : ''}${extendFields.selectStmt}`;
         if (_.size(whereStmt) !== 0) {
           if (_.size(extendFields.whereStmt) !== 0) {
             whereStmt += ` AND ${extendFields.whereStmt}`;
@@ -127,7 +134,7 @@ export default class OrientDBQueryBuilder {
 
     return {
       selectStmt,
-      whereStmt
+      whereStmt,
     };
   }
 
@@ -136,24 +143,31 @@ export default class OrientDBQueryBuilder {
     return _.size(this.tempParams) - 1;
   }
 
-  fastQuerryBuilder (template) {
+  fastQuerryBuilder(template) {
     let query = `select expand(bothV()[@class="${template.collection}"]) from (`;
-    query += `select expand(bothE(${template.extend[0].relation})) from ${template.extend[0].collection} where ${this.buildWhereStmt(_.pick(template.extend[0], ['collection', 'params']), '')})`;
+    query += `select expand(bothE(${template.extend[0].relation})) from ${template.extend[0]
+      .collection} where ${this.buildWhereStmt(
+      _.pick(template.extend[0], ['collection', 'params']),
+      '',
+    )})`;
     query += this.buildWhereStmt(template) ? ` where ${this.buildWhereStmt(template)}` : '';
     return query;
   }
-
 
   buildSelectStmt(template, parent) {
     let res = '';
     //extends
     if (template.target !== undefined) {
       const edge = (parent ? parent : '') + this.buildEdge(template.relation, template.direction);
-      if(template.fields !== null) {
-        res += ` ${edge}["@rid"] AS \`${_.replace(template.target, '.', '§')}§@rid\`, ${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
+      if (template.fields !== null) {
+        res += ` ${edge}["@rid"] AS \`${_.replace(
+          template.target,
+          '.',
+          '§',
+        )}§@rid\`, ${edge}["_id"] AS \`${_.replace(template.target, '.', '§')}§_id\``;
 
         _.forEach(template.fields, field => {
-          if(field === '_id') {
+          if (field === '_id') {
             return;
           }
           let tempEdge = edge;
@@ -164,12 +178,20 @@ export default class OrientDBQueryBuilder {
             tempField = field.substr(2);
           }
 
-          res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(template.target, '.', '§')}§${tempField}\``;
+          res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(
+            template.target,
+            '.',
+            '§',
+          )}§${tempField}\``;
         });
       }
-      if(template.edgeFields) {
+      if (template.edgeFields) {
         _.forEach(template.edgeFields, field => {
-          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] AS \`${_.replace(template.target, '.', '§')}§${field}\``;
+          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] AS \`${_.replace(
+            template.target,
+            '.',
+            '§',
+          )}§${field}\``;
         });
       }
       // main class subscribed on
@@ -182,12 +204,10 @@ export default class OrientDBQueryBuilder {
         _.forEach(template.fields, field => {
           res += `, ${field}`;
         });
-      }
-      else {
+      } else {
         res += '*';
       }
     }
-
 
     return res;
   }
@@ -200,7 +220,7 @@ export default class OrientDBQueryBuilder {
     let res = '';
     if (template.params instanceof Object) {
       res = this.buildObject(template.params, edge);
-    } else if(template.params instanceof Array) {
+    } else if (template.params instanceof Array) {
       _.forEach(template.params, (param, key) => {
         res += this.buildObject(param, edge) + (_.size(template.params) - 1 > key ? ' OR' : '');
       });
@@ -212,18 +232,20 @@ export default class OrientDBQueryBuilder {
     let objectRes = '(';
     let counter = 0;
     _.forEach(paramsObject, (value, property) => {
-      objectRes += this.buildProperty(value, property, edge) + (_.size(paramsObject) - 1 > counter ? ' AND' : ' )');
+      objectRes +=
+        this.buildProperty(value, property, edge) +
+        (_.size(paramsObject) - 1 > counter ? ' AND' : ' )');
       counter++;
     });
     return objectRes;
   }
 
-  buildProperty(value, property, edge){
+  buildProperty(value, property, edge) {
     if (value instanceof Array) {
       let res = '(';
       _.forEach(value, (v, i) => {
         res += this.buildPropertyObject(property, v, edge) + (_.size(value) - 1 > i ? ' OR' : ' )');
-      })
+      });
       return res;
     }
     if (value instanceof Object) {
@@ -236,7 +258,12 @@ export default class OrientDBQueryBuilder {
     if (typeof propertyObject === 'string') {
       return this.buildPropertyValuePair(propertyName, propertyObject, '=', edge);
     } else if (propertyObject.value !== undefined && propertyObject.operator !== undefined) {
-      return this.buildPropertyValuePair(propertyName, propertyObject.value, propertyObject.operator, edge);
+      return this.buildPropertyValuePair(
+        propertyName,
+        propertyObject.value,
+        propertyObject.operator,
+        edge,
+      );
     } else if (propertyObject.value !== undefined) {
       return this.buildPropertyValuePair(propertyName, propertyObject.value, '=', edge);
     } else if (propertyObject.operator !== undefined) {
@@ -248,7 +275,7 @@ export default class OrientDBQueryBuilder {
   // preset goldmine since number are not recognized as params by orientjs
   buildPropertyValuePair(property, value, operator, edge) {
     const tempParamIndex = this.setNextParamAvailable(value);
-    if(value === null) {
+    if (value === null) {
       if (edge) {
         return ` ${edge}["${property}"] ${operator}`;
       }
@@ -259,7 +286,6 @@ export default class OrientDBQueryBuilder {
     }
     return ` \`${property}\` ${operator || '='} :goldmine${tempParamIndex}`;
   }
-
 
   buildOrderByStmt(template) {
     let res = '';
@@ -310,7 +336,7 @@ export default class OrientDBQueryBuilder {
   }
 
   buildDirection(direction) {
-    return direction ? direction: DirectionTypes.BOTH;
+    return direction ? (_.toLower(direction) === 'in' ? 'out' : 'in') : DirectionTypes.BOTH;
   }
 
   buildEdge(relation, direction, isEdge = false) {
