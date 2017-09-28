@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import pluralize from 'pluralize';
-import {flattenExtend, getCollectionName} from '../helpers/helperFunctions';
+import {flattenExtend, getCollectionName, extractRid} from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
   constructor(db, templates, queries, decoded, allowAll) {
@@ -53,8 +53,8 @@ export default class OrientDBQueryResolver {
     _.forEach(response, obj => {
       let formattedObject = {};
       // Add to cache
-      if(_.has(obj, 'rid')) {
-        cache.push(obj['rid'].toString());
+      if(_.has(obj, '@rid')) {
+        cache.push(extractRid(obj['@rid']));
       }
 
       _.forEach(obj, (value, key) => {
