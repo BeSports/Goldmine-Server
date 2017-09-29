@@ -53,6 +53,7 @@ export function extractParams(publicationNameWithParams) {
 
 export function emitResults(io, roomHash, room, type, collectionName, data, fields) {
   data = extractFields(fields, data);
+  data['__publicationNameWithParams'] = [room.publicationNameWithParams];
   io.to(roomHash).emit(room.publicationNameWithParams, {
     type: type,
     collectionName: pluralize(collectionName),
@@ -61,8 +62,14 @@ export function emitResults(io, roomHash, room, type, collectionName, data, fiel
 }
 
 export function extractFields(fields, data) {
-  if (fields === undefined) {
-    delete data['@rid'];
+  if (
+    fields === undefined ||
+    _.size(
+      _.filter(fields, f => {
+        return !!f;
+      }),
+    ) === 0
+  ) {
     delete data['@type'];
     delete data['@version'];
     return data;
@@ -70,6 +77,7 @@ export function extractFields(fields, data) {
   let result = {};
 
   result['_id'] = data['_id'];
+  result['@rid'] = data['@rid'];
   result['rid'] = data['rid'];
 
   _.forEach(fields, field => {
@@ -90,11 +98,13 @@ export function serverParamsUsed(publication, decoded) {
 
 export function flattenExtend(extend) {
   let extendArray = [];
-  if(extend) {
-    const newExtends = _.flatten(_.map(extend, (e) => {
-      extendArray.push(e);
-      return flattenExtend(e.extend);
-    }));
+  if (extend) {
+    const newExtends = _.flatten(
+      _.map(extend, e => {
+        extendArray.push(e);
+        return flattenExtend(e.extend);
+      }),
+    );
     extendArray.push(newExtends);
   }
   return extendArray;

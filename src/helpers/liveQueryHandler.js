@@ -18,7 +18,7 @@ export default function(io, db, collectionType) {
       if (_.includes(res.content['@class'], '_')) {
         const edgeFields = getEdgeFieldsForExtendOverRelation(room.templates, collectionName);
         const resObject = res.content;
-        resObject.rid = rid;
+        resObject['@rid'] = rid;
         const object = {
           rid,
         };
@@ -35,7 +35,7 @@ export default function(io, db, collectionType) {
         }
         emitResults(io, roomKey, room, type, collection, resObject);
       } else {
-        const fields = _.flatten(
+        const fields = _.flattenDeep(
           _.concat(
             _.map(room.templates, temp => {
               if (_.toLower(temp.collection) === _.toLower(collectionName)) {
