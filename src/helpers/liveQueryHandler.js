@@ -60,22 +60,24 @@ export default function(io, db, collectionType) {
       console.log(`INSERT DETECTED (${collectionType.name})(${rid})`);
       if (_.includes(res.content['@class'], '_')) {
         return;
-      }
-      //todo: check filter go on here
-      const roomsWithTemplatesForInsert = _.filter(
-        _.map(io.sockets.adapter.rooms, (value, key) => {
-          return _.find(value.templates, ['collection', collectionType.name])
-            ? { room: value, hash: key }
-            : null;
-        }),
-        x => {
-          return x !== null;
-        },
-      );
+      } else {
+        //todo: check filter go on here
+        const roomsWithTemplatesForInsert = _.filter(
+          _.map(io.sockets.adapter.rooms, (value, key) => {
+            return _.find(value.templates, ['collection', collectionType.name])
+              ? { room: value, hash: key }
+              : null;
+          }),
+          x => {
+            return x !== null;
+          },
+        );
 
-      _.forEach(roomsWithTemplatesForInsert, (room, key) => {
-        insertHandler(io, db, room.room, room.hash, collectionType, res);
-      });
+        _.forEach(roomsWithTemplatesForInsert, (room, key) => {
+          insertHandler(io, db, room.room, room.hash, collectionType, res);
+        });
+      }
+
     })
     .on('live-update', res => {
       if (res.version === 1) {

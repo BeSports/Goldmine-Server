@@ -110,7 +110,7 @@ export default class OrientDBQueryBuilder {
         : ''}${buildSelect}`;
       const tempWhereStmt = this.buildWhereStmt(e, parent);
       if (e.extend) {
-        const extendFields = this.buildExtends(e.extend, parent + `both(${e.relation}).`);
+        const extendFields = this.buildExtends(e.extend, parent + `both("${e.relation}").`);
         selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
         _.size(_.trim(extendFields.selectStmt)) !== 0
           ? ', '
@@ -202,6 +202,9 @@ export default class OrientDBQueryBuilder {
         res += `@rid, _id `;
 
         _.forEach(template.fields, field => {
+          if(field === '_id') {
+            return;
+          }
           res += `, ${field}`;
         });
       } else {
