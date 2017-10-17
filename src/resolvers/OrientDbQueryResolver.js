@@ -111,6 +111,13 @@ export default class OrientDBQueryResolver {
       if(template.extraFields) {
         _.merge(formattedObject, template.extraFields);
       }
+      if(template.extend) {
+        _.map(flattenExtend(template.extend), (ext) => {
+          if(!formattedObject.hasOwnProperty(ext.target) && ext.fields !== null) {
+            _.set(formattedObject, `${ext.target}`, ext.multi === true ? [] : {});
+          }
+        });
+      }
       result.push(formattedObject);
     });
 

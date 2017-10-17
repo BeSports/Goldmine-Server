@@ -99,36 +99,44 @@ export default class OrientDBQueryBuilder {
     };
   }
 
-  buildExtends(extend, parent) {
+  buildExtends(extend, parent, or) {
     // select statement
     let selectStmt = '';
     let whereStmt = '';
     _.map(extend, e => {
-      const buildSelect = this.buildSelectStmt(e, parent);
-      selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0
-        ? ', '
-        : ''}${buildSelect}`;
-      const tempWhereStmt = this.buildWhereStmt(e, parent);
-      if (e.extend) {
-        const extendFields = this.buildExtends(e.extend, parent + `both("${e.relation}").`);
-        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
-        _.size(_.trim(extendFields.selectStmt)) !== 0
+      if (e instanceof Array) {
+        _.map(e, ext => {
+          const extendFields = this.buildExtends([ext], parent, true);
+          selectStmt += `${extendFields.selectStmt ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}` : ''} `;
+          whereStmt += `${extendFields.whereStmt ? ` ${_.size(_.trim(whereStmt)) > 0 ? 'OR' : ''} ${extendFields.whereStmt}` : ''}`;
+        });
+      } else {
+        const buildSelect = this.buildSelectStmt(e, parent);
+        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0
           ? ', '
-          : ''}${extendFields.selectStmt}`;
+          : ''}${buildSelect}`;
+        const tempWhereStmt = this.buildWhereStmt(e, parent);
+        if (e.extend) {
+          const extendFields = this.buildExtends(e.extend, parent + `both("${e.relation}").`);
+          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
+          _.size(_.trim(extendFields.selectStmt)) !== 0
+            ? ', '
+            : ''}${extendFields.selectStmt}`;
+          if (_.size(whereStmt) !== 0) {
+            if (_.size(extendFields.whereStmt) !== 0) {
+              whereStmt += ` ${or ? 'OR' : 'AND'} ${extendFields.whereStmt}`;
+            }
+          } else {
+            whereStmt = extendFields.whereStmt;
+          }
+        }
         if (_.size(whereStmt) !== 0) {
-          if (_.size(extendFields.whereStmt) !== 0) {
-            whereStmt += ` AND ${extendFields.whereStmt}`;
+          if (_.size(tempWhereStmt) !== 0) {
+            whereStmt += ` ${or ? 'OR' : 'AND'} ${tempWhereStmt}`;
           }
         } else {
-          whereStmt = extendFields.whereStmt;
+          whereStmt = tempWhereStmt;
         }
-      }
-      if (_.size(whereStmt) !== 0) {
-        if (_.size(tempWhereStmt) !== 0) {
-          whereStmt += ` AND ${tempWhereStmt}`;
-        }
-      } else {
-        whereStmt = tempWhereStmt;
       }
     });
 
@@ -172,12 +180,6 @@ export default class OrientDBQueryBuilder {
           }
           let tempEdge = edge;
           let tempField = field;
-
-          if (field.startsWith('e_')) {
-            tempEdge = this.buildEdge(template.relation, template.direction, true);
-            tempField = field.substr(2);
-          }
-
           res += `, ${tempEdge}["${tempField}"] AS \`${_.replace(
             template.target,
             '.',
@@ -187,7 +189,9 @@ export default class OrientDBQueryBuilder {
       }
       if (template.edgeFields) {
         _.forEach(template.edgeFields, field => {
-          res += `${template.fields === null ? '' : ', '} bothE()[\"${field}\"] AS \`${_.replace(
+          res += `${template.fields === null
+            ? ''
+            : ', '} ${parent}bothE()[\"${field}\"] AS \`${_.replace(
             template.target,
             '.',
             '§',
@@ -202,7 +206,7 @@ export default class OrientDBQueryBuilder {
         res += `@rid, _id `;
 
         _.forEach(template.fields, field => {
-          if(field === '_id') {
+          if (field === '_id') {
             return;
           }
           res += `, ${field}`;
@@ -227,6 +231,8 @@ export default class OrientDBQueryBuilder {
       _.forEach(template.params, (param, key) => {
         res += this.buildObject(param, edge) + (_.size(template.params) - 1 > key ? ' OR' : '');
       });
+    } else if (typeof template.params === 'string') {
+      res += this.buildPropertyValuePair('_id', template.params, '=', edge);
     }
     return res;
   }
@@ -339,7 +345,7 @@ export default class OrientDBQueryBuilder {
   }
 
   buildDirection(direction) {
-    return direction ? (_.toLower(direction) === 'in' ? 'out' : 'in') : DirectionTypes.BOTH;
+    return direction ? (_.toLower(direction) === 'in' ? 'out' : 'in') : 'both';
   }
 
   buildEdge(relation, direction, isEdge = false) {

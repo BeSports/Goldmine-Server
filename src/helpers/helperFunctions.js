@@ -107,7 +107,7 @@ export function flattenExtend(extend) {
     );
     extendArray.push(newExtends);
   }
-  return extendArray;
+  return _.flatten(extendArray);
 }
 
 export function getEdgeFieldsForExtendOverRelation(template, relation) {
