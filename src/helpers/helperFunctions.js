@@ -101,8 +101,15 @@ export function flattenExtend(extend) {
   if (extend) {
     const newExtends = _.flatten(
       _.map(extend, e => {
-        extendArray.push(e);
-        return flattenExtend(e.extend);
+        // ANDS and deeper levels :33: deeper
+        if(e instanceof Array) {
+          return flattenExtend(e);
+        }
+        //ORS
+        else {
+          extendArray.push(e);
+          return flattenExtend(e.extend);
+        }
       }),
     );
     extendArray.push(newExtends);
