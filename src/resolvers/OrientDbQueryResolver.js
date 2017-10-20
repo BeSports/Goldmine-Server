@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import pluralize from 'pluralize';
-import {flattenExtend, getCollectionName, extractRid} from '../helpers/helperFunctions';
+import { flattenExtend, getCollectionName, extractRid } from '../helpers/helperFunctions';
 
 export default class OrientDBQueryResolver {
   constructor(db, templates, queries, decoded, allowAll) {
@@ -53,7 +53,7 @@ export default class OrientDBQueryResolver {
     _.forEach(response, obj => {
       let formattedObject = {};
       // Add to cache
-      if(_.has(obj, '@rid')) {
+      if (_.has(obj, '@rid')) {
         cache.push(extractRid(obj['@rid']));
       }
 
@@ -65,8 +65,7 @@ export default class OrientDBQueryResolver {
           key.startsWith('_') ||
           key.startsWith('rid')
         ) {
-          if(key.startsWith('in_') ||
-            key.startsWith('out_') ) {
+          if (key.startsWith('in_') || key.startsWith('out_')) {
             return;
           }
           formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
@@ -101,19 +100,22 @@ export default class OrientDBQueryResolver {
               formattedObject[target][key][property] = property.startsWith('_id')
                 ? item.toString()
                 : item;
-
             });
           } else {
-            _.set(formattedObject, `${target}.${_.replace(property, '§', '.')}`, value instanceof Array && _.size(value) === 1 ? value[0] : value);
+            _.set(
+              formattedObject,
+              `${target}.${_.replace(property, '§', '.')}`,
+              value instanceof Array && _.size(value) === 1 ? value[0] : value,
+            );
           }
         }
       });
-      if(template.extraFields) {
+      if (template.extraFields) {
         _.merge(formattedObject, template.extraFields);
       }
-      if(template.extend) {
-        _.map(flattenExtend(template.extend), (ext) => {
-          if(!formattedObject.hasOwnProperty(ext.target) && ext.fields !== null) {
+      if (template.extend) {
+        _.map(flattenExtend(template.extend), ext => {
+          if (!formattedObject.hasOwnProperty(ext.target) && ext.fields !== null) {
             _.set(formattedObject, `${ext.target}`, ext.multi === true ? [] : {});
           }
         });

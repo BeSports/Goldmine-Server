@@ -57,15 +57,15 @@ const startQuerries = function(Config, publications) {
     console.log('WEB SOCKET LISTENING ON:', Config.port);
   });
 
-  if(Config.logging.statistics === true && typeof Config.logging.repeat === "number") {
-    setInterval(
-      () => {
-        console.log(`${new Date().toISOString()} Rooms: ${_.size(_.keys(io.sockets.adapter.rooms))} Sockets: ${_.size(io.sockets.sockets)}`);
-      }, Config.logging.repeat
-    );
+  if (Config.logging.statistics === true && typeof Config.logging.repeat === 'number') {
+    setInterval(() => {
+      console.log(
+        `${new Date().toISOString()} Rooms: ${_.size(
+          _.keys(io.sockets.adapter.rooms),
+        )} Sockets: ${_.size(io.sockets.sockets)}`,
+      );
+    }, Config.logging.repeat);
   }
-
-
 
   // Keeps track of all new inserts which could
   // be interesting for future updates.
@@ -192,7 +192,9 @@ const startQuerries = function(Config, publications) {
           data: _.map(data, d => {
             return {
               collectionName: d.collectionName,
-              data: d.data,
+              data: _.map(d.data, da => {
+                return _.assign(da, { ['__publicationNameWithParams']: [publicationNameWithParams] });
+              }),
             };
           }),
         };
@@ -221,7 +223,9 @@ const startQuerries = function(Config, publications) {
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
-          io.sockets.adapter.rooms[hash(room)].publicationNameWithParams = publicationNameWithParams;
+          io.sockets.adapter.rooms[
+            hash(room)
+          ].publicationNameWithParams = publicationNameWithParams;
           io.sockets.adapter.rooms[hash(room)].queries = queries;
           io.sockets.adapter.rooms[hash(room)].templates = templates;
         }
@@ -243,10 +247,18 @@ const startQuerries = function(Config, publications) {
         return;
       }
 
-      const roomToRemove = _.first(_.pullAt(connections[socket.id], _.findIndex(connections[socket.id], ['publicationNameWithParams', payload.publicationNameWithParams])));
+      const roomToRemove = _.first(
+        _.pullAt(
+          connections[socket.id],
+          _.findIndex(connections[socket.id], [
+            'publicationNameWithParams',
+            payload.publicationNameWithParams,
+          ]),
+        ),
+      );
 
       // Remove socket from socket.io publication room.
-      if(roomToRemove) {
+      if (roomToRemove) {
         socket.leave(hash(roomToRemove));
       }
     });
