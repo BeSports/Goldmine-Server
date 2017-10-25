@@ -51,12 +51,10 @@ export function extractParams(publicationNameWithParams) {
   return params;
 }
 
-export function emitResults(io, roomHash, room, type, collectionName, data, fields) {
-  data = extractFields(fields, data);
-  data['__publicationNameWithParams'] = [room.publicationNameWithParams];
+export function emitResults(io, roomHash, room, type, data) {
   io.to(roomHash).emit(room.publicationNameWithParams, {
     type: type,
-    collectionName: pluralize(collectionName),
+    publicationNameWithParams: room.publicationNameWithParams,
     data: data,
   });
 }

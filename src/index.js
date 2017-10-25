@@ -175,6 +175,23 @@ const startQuerries = function(Config, publications) {
       // Params for the query
       const queryParams = queryBuilds.statementParams;
 
+      const room = {
+        queries,
+        queryParams,
+        publicationNameWithParams,
+      };
+
+      // room already exists
+      if (_.has(io.sockets.adapter.rooms, hash(room))) {
+        console.log('reusing data from servercache for subscription: ', publicationNameWithParams);
+        //emits the serverdata to the new member of the room without refetching
+        socket.emit(payload.publicationNameWithParams, {
+          type: Types.INIT,
+          data: io.sockets.adapter.rooms[hash(room)].serverCache,
+        });
+        return;
+      }
+
       if (_.get(Config, 'logging.publications', false)) {
         console.log('-----------------------------------------------');
         console.log(`PUBLICATION: ${publicationNameWithParams}`);
@@ -186,21 +203,26 @@ const startQuerries = function(Config, publications) {
 
       // Resolve the initial queries and send the responses.
       new QueryResolver(db, templates, queries, socket.decoded).resolve(queryParams).then(data => {
+        const sendeableData = _.map(data, d => {
+          return {
+            collectionName: d.collectionName,
+            data: _.map(d.data, da => {
+              return _.assign(da, {
+                ['__publicationNameWithParams']: [publicationNameWithParams],
+              });
+            }),
+          };
+        });
         // Build payload.
         const responsePayload = {
           type: Types.INIT,
-          data: _.map(data, d => {
-            return {
-              collectionName: d.collectionName,
-              data: _.map(d.data, da => {
-                return _.assign(da, { ['__publicationNameWithParams']: [publicationNameWithParams] });
-              }),
-            };
-          }),
+          data: sendeableData,
         };
 
         // Flattens all cache to a single array and return the unique ids
-        const cache = _.uniq(_.flatten(_.map(data, 'cache')));
+        const cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
+          return !_.startsWith(c, '#-2');
+        });
 
         // Send data to client who subscribed.
         if (_.get(Config, 'logging.publications', false)) {
@@ -209,11 +231,6 @@ const startQuerries = function(Config, publications) {
         socket.emit(payload.publicationNameWithParams, responsePayload);
         if (payload.isReactive) {
           // Add publication to client's personal placeholder.
-          const room = {
-            queries,
-            queryParams,
-            publicationNameWithParams,
-          };
           connections[socket.id].push(room);
 
           // Add socket to publication.
@@ -222,6 +239,7 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
+          io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
           io.sockets.adapter.rooms[
             hash(room)

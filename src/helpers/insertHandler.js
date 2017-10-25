@@ -1,9 +1,15 @@
 import _ from 'lodash';
 import Builder from '../builders/OrientDbQueryBuilder';
 import Resolver from '../resolvers/OrientDbQueryResolver';
-import { extractParams, extractRid, emitResults, getCollectionName } from './helperFunctions';
+import {
+  extractParams,
+  extractRid,
+  emitResults,
+  getCollectionName,
+  flattenExtend,
+} from './helperFunctions';
 import OperationTypes from '../enums/OperationTypes';
-
+const deepDifference = require('deep-diff');
 /**
  * Handles inserts from the live queries.
  *
@@ -12,28 +18,59 @@ import OperationTypes from '../enums/OperationTypes';
  * @param insertedObject
  * @param cache
  */
-export default function insertHandler(io, db, room, roomHash, collectionType, res) {
-  const id = res.content['_id'];
-  const rid = extractRid(res);
-
+export default function insertHandler(io, db, room, roomHash, collectionName) {
   let filteredRoomQueries = [];
-  const filteredTemplates = _.filter(room.templates, (t, i) => {
-    if (_.lowerCase(t.collection) === _.lowerCase(collectionType.name)) {
+  let filteredRoomTemplates = [];
+  let filteredIndexes = [];
+  _.map(room.templates, (template, i) => {
+    if (
+      _.find(flattenExtend([template]), [
+        _.includes(collectionName, '_') ? 'relation' : 'collection',
+        collectionName,
+      ])
+    ) {
       filteredRoomQueries.push(room.queries[i]);
-      return true;
+      filteredRoomTemplates.push(room.templates[i]);
+      filteredIndexes.push(i);
     }
-    return false;
   });
-  const resolver = new Resolver(db, filteredTemplates, filteredRoomQueries, {}, true);
-  const fields = _.filter(_.flatten(_.concat(_.map(filteredTemplates, 'fields'))), f => {
-    return !!f;
-  });
+  const resolver = new Resolver(db, filteredRoomTemplates, filteredRoomQueries, {}, true);
+  resolver.resolve(room.queryParams).then(data => {
+    const convertedData = _.map(data, d => {
+      return {
+        collectionName: d.collectionName,
+        data: _.map(d.data, da => {
+          return _.assign(da, {
+            ['__publicationNameWithParams']: [room.publicationNameWithParams],
+          });
+        }),
+      };
+    });
+    const serverCache = _.at(room.serverCache, filteredIndexes) ;
 
-  resolver.resolve(room.queryParams).then(result => {
-    let data = _.find(_.flatten(_.map(result, 'data')), ['_id', id]);
-    if (data !== undefined) {
-      io.sockets.adapter.rooms[roomHash].cache.push(rid);
-      emitResults(io, roomHash, room, OperationTypes.INSERT, collectionType.name, data, undefined);
+    const differences = _.filter(_.map(convertedData, (cv, i) => {
+      return {
+        collectionName: cv.collectionName,
+        data: _.filter(_.map(cv.data, da => {
+          return {
+            rid: da.rid,
+            differences: deepDifference(_.find(serverCache[i].data || {}, ['rid', da.rid]), da),
+          };
+        }), 'differences'),
+      };
+    }), changeSet => {
+      return _.size(changeSet.data) > 0;
+    });
+    console.log('Difference object', differences);
+    if (differences !== undefined) {
+      // new serverCache
+      _.forEach(filteredIndexes, (setAtIndex, fromIndex) => {
+        room.serverCache[setAtIndex] = convertedData[fromIndex];
+      });
+      room.cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
+        return !_.startsWith(c, '#-2');
+      });
+      emitResults(io, roomHash, room, 'change', differences);
     }
   });
 }

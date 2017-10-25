@@ -54,7 +54,7 @@ export default class OrientDBQueryResolver {
       let formattedObject = {};
       // Add to cache
       if (_.has(obj, '@rid')) {
-        cache.push(extractRid(obj['@rid']));
+        cache.push(extractRid(obj['@rid']).toString());
       }
 
       _.forEach(obj, (value, key) => {
@@ -93,6 +93,9 @@ export default class OrientDBQueryResolver {
             }
 
             _.forEach(value, (item, key) => {
+              if(property === '@rid') {
+                cache.push(item.toString());
+              }
               if (formattedObject[target][key] === undefined) {
                 formattedObject[target][key] = {};
               }
