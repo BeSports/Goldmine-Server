@@ -62,7 +62,7 @@ const startQuerries = function(Config, publications) {
       console.log(
         `${new Date().toISOString()} Rooms: ${_.size(
           _.keys(io.sockets.adapter.rooms),
-        )} Sockets: ${_.size(io.sockets.sockets)}`,
+        )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB`,
       );
     }, Config.logging.repeat);
   }
@@ -90,13 +90,13 @@ const startQuerries = function(Config, publications) {
           name: obj.name,
           type: Types.VERTEX,
         });
-        liveQueryHandler(io, db, obj);
+        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
       } else if (obj.superClass === 'E') {
         collectionTypes.push({
           name: obj.name,
           type: Types.EDGE,
         });
-        liveQueryHandler(io, db, obj);
+        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
       }
     });
   });
@@ -110,7 +110,7 @@ const startQuerries = function(Config, publications) {
     db.query('SELECT _id FROM V LIMIT 1').catch(() => {
       console.error("Couldn't keep database connection alive!");
     });
-  }, 60000);
+  }, 60 * 1000);
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
@@ -207,6 +207,9 @@ const startQuerries = function(Config, publications) {
           return {
             collectionName: d.collectionName,
             data: _.map(d.data, da => {
+              _.unset(da, '@version');
+              _.unset(da, '@class');
+              _.unset(da, '@rid');
               return _.assign(da, {
                 ['__publicationNameWithParams']: [publicationNameWithParams],
               });
@@ -217,6 +220,7 @@ const startQuerries = function(Config, publications) {
         const responsePayload = {
           type: Types.INIT,
           data: sendeableData,
+          publicationNameWithParams
         };
 
         // Flattens all cache to a single array and return the unique ids

@@ -11,13 +11,19 @@ import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
 
-export default function(io, db, collectionType) {
+export default function(io, db, collectionType, shouldLog) {
   const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
   db
     .liveQuery(QUERY)
     .on('live-insert', res => {
       const rid = extractRid(res);
-      console.log(`INSERT DETECTED (${collectionType.name})(${rid})`);
+
+      if (shouldLog) {
+        console.log(`INSERT DETECTED (${collectionType.name})(${rid})`);
+      }
+      if (_.includes(collectionType.name, '_')) {
+        return;
+      }
       // inserted an edge
       let roomsWithTemplatesForInsert = _.filter(
         _.map(io.sockets.adapter.rooms, (value, key) => {
@@ -41,7 +47,9 @@ export default function(io, db, collectionType) {
         return;
       }
       const rid = extractRid(res);
-      console.log(`UPDATE DETECTED (${collectionType.name})(${rid})(version:${res.version})`);
+      if (shouldLog) {
+        console.log(`UPDATE DETECTED (${collectionType.name})(${rid})(version:${res.version})`);
+      }
       let roomsWithTemplatesForInsert = _.filter(
         _.map(io.sockets.adapter.rooms, (value, key) => {
           return _.find(flattenExtend(value.templates), [
@@ -61,7 +69,9 @@ export default function(io, db, collectionType) {
     })
     .on('live-delete', res => {
       const rid = extractRid(res);
-      console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
+      if (shouldLog) {
+        console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
+      }
       let roomsWithTemplatesForInsert = _.filter(
         _.map(io.sockets.adapter.rooms, (value, key) => {
           return _.find(flattenExtend(value.templates), [

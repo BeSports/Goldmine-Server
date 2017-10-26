@@ -40,29 +40,46 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
       return {
         collectionName: d.collectionName,
         data: _.map(d.data, da => {
+          _.unset(da, '@rid');
+          _.unset(da, '@version');
+          _.unset(da, '@class');
           return _.assign(da, {
             ['__publicationNameWithParams']: [room.publicationNameWithParams],
           });
         }),
       };
     });
-    const serverCache = _.at(room.serverCache, filteredIndexes) ;
+    const serverCache = _.at(room.serverCache, filteredIndexes);
 
-    const differences = _.filter(_.map(convertedData, (cv, i) => {
-      return {
-        collectionName: cv.collectionName,
-        data: _.filter(_.map(cv.data, da => {
-          return {
-            rid: da.rid,
-            differences: deepDifference(_.find(serverCache[i].data || {}, ['rid', da.rid]), da),
-          };
-        }), 'differences'),
-      };
-    }), changeSet => {
-      return _.size(changeSet.data) > 0;
-    });
-    console.log('Difference object', differences);
-    if (differences !== undefined) {
+    const differences = _.filter(
+      _.map(convertedData, (cv, i) => {
+        return {
+          collectionName: cv.collectionName,
+          data: _.filter(
+            _.map(cv.data, da => {
+              if (_.find(serverCache[i].data || [], ['rid', da.rid])) {
+                return {
+                  rid: da.rid,
+                  differences: deepDifference(
+                    _.find(serverCache[i].data || [], ['rid', da.rid]),
+                    da,
+                  ),
+                };
+              } else {
+                return da;
+              }
+            }),
+            d => {
+              return _.size(_.keys(d)) > 2 || _.size(_.keys(d.differences)) > 0;
+            },
+          ),
+        };
+      }),
+      changeSet => {
+        return _.size(changeSet.data) > 0;
+      },
+    );
+    if (differences !== undefined && _.size(differences) > 0) {
       // new serverCache
       _.forEach(filteredIndexes, (setAtIndex, fromIndex) => {
         room.serverCache[setAtIndex] = convertedData[fromIndex];

@@ -201,7 +201,6 @@ export default class OrientDBQueryBuilder {
       // main class subscribed on
     } else {
       const size = _.size(template.fields);
-
       if (size !== 0) {
         res += `@rid, _id `;
 
@@ -212,7 +211,7 @@ export default class OrientDBQueryBuilder {
           res += `, ${field}`;
         });
       } else {
-        res += '*';
+        res += '@rid, *';
       }
     }
 
