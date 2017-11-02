@@ -55,23 +55,38 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
       _.map(convertedData, (cv, i) => {
         return {
           collectionName: cv.collectionName,
-          data: _.filter(
-            _.map(cv.data, da => {
-              if (_.find(serverCache[i].data || [], ['rid', da.rid])) {
-                return {
-                  rid: da.rid,
-                  differences: deepDifference(
-                    _.find(serverCache[i].data || [], ['rid', da.rid]),
-                    da,
-                  ),
-                };
+          data: _.concat(
+            _.filter(
+              //look for differences
+              _.map(cv.data, da => {
+                if (_.find(serverCache[i].data || [], ['rid', da.rid])) {
+                  return {
+                    rid: da.rid,
+                    differences: deepDifference(
+                      _.find(serverCache[i].data || [], ['rid', da.rid]),
+                      da,
+                    ),
+                  };
+                } else {
+                  return da;
+                }
+              }),
+              d => {
+                return _.size(_.keys(d)) > 2 || _.size(_.keys(d.differences)) > 0;
+              },
+            ),
+            _.filter(_.map(serverCache[i].data, da => {
+              if (_.find(cv.data, ['rid', da.rid]) || da.rid === undefined) {
+                return false;
               } else {
-                return da;
+                return {
+                  removeFromSub: room.publicationNameWithParams,
+                  rid: da.rid.toString(),
+                };
               }
+            }), o => {
+              return o !== false;
             }),
-            d => {
-              return _.size(_.keys(d)) > 2 || _.size(_.keys(d.differences)) > 0;
-            },
           ),
         };
       }),
@@ -79,6 +94,7 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
         return _.size(changeSet.data) > 0;
       },
     );
+
     if (differences !== undefined && _.size(differences) > 0) {
       // new serverCache
       _.forEach(filteredIndexes, (setAtIndex, fromIndex) => {

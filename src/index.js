@@ -62,7 +62,9 @@ const startQuerries = function(Config, publications) {
       console.log(
         `${new Date().toISOString()} Rooms: ${_.size(
           _.keys(io.sockets.adapter.rooms),
-        )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB`,
+        )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss /
+          (1024 * 1024)
+        ).toFixed(2)}MB`,
       );
     }, Config.logging.repeat);
   }
@@ -220,7 +222,7 @@ const startQuerries = function(Config, publications) {
         const responsePayload = {
           type: Types.INIT,
           data: sendeableData,
-          publicationNameWithParams
+          publicationNameWithParams,
         };
 
         // Flattens all cache to a single array and return the unique ids

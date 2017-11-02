@@ -38,7 +38,7 @@ export default function(io, db, collectionType, shouldLog) {
           return x !== null;
         },
       );
-      _.forEach(roomsWithTemplatesForInsert, (room, key) => {
+      _.forEach(roomsWithTemplatesForInsert, (room) => {
         insertHandler(io, db, room.room, room.hash, collectionType.name);
       });
     })
@@ -63,7 +63,7 @@ export default function(io, db, collectionType, shouldLog) {
           return x !== null;
         },
       );
-      _.forEach(roomsWithTemplatesForInsert, (room, key) => {
+      _.forEach(roomsWithTemplatesForInsert, (room) => {
         insertHandler(io, db, room.room, room.hash, collectionType.name);
       });
     })
@@ -73,7 +73,7 @@ export default function(io, db, collectionType, shouldLog) {
         console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
       }
       let roomsWithTemplatesForInsert = _.filter(
-        _.map(io.sockets.adapter.rooms, (value, key) => {
+        _.map(io.sockets.adapter.rooms, (value, key) => {0
           return _.find(flattenExtend(value.templates), [
             _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
             collectionType.name,
@@ -85,7 +85,8 @@ export default function(io, db, collectionType, shouldLog) {
           return x !== null;
         },
       );
-      _.forEach(roomsWithTemplatesForInsert, (room, key) => {
+      _.forEach(roomsWithTemplatesForInsert, (room) => {
+        console.log(room.publicationNameWithParams);
         insertHandler(io, db, room.room, room.hash, collectionType.name);
       });
     });

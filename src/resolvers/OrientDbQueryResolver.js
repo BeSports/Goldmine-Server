@@ -34,7 +34,7 @@ export default class OrientDBQueryResolver {
         _.forEach(values, (value, key) => {
           const response = this.handleResponse(this.templates[key], value);
           result.push({
-            collectionName: getCollectionName(this.templates[key]),
+            collectionName: _.has(this.templates, `${key}.collection`) ? getCollectionName(this.templates[key]) : _.get(_.first(response.result), 'class', 'undefined'),
             data: response.result,
             cache: response.cache,
           });
