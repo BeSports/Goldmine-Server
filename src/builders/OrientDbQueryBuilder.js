@@ -153,7 +153,7 @@ export default class OrientDBQueryBuilder {
 
   fastQuerryBuilder(template) {
     let query = `select expand(bothV()[@class="${template.collection}"]) from (`;
-    query += `select expand(bothE(${template.extend[0].relation})) from ${template.extend[0]
+    query += `select expand(bothE('${template.extend[0].relation}')) from ${template.extend[0]
       .collection} where ${this.buildWhereStmt(
       _.pick(template.extend[0], ['collection', 'params']),
       '',
@@ -191,7 +191,7 @@ export default class OrientDBQueryBuilder {
         _.forEach(template.edgeFields, field => {
           res += `${template.fields === null
             ? ''
-            : ', '} ${parent}bothE().${field} AS \`${_.replace(
+            : ', '} ${parent}bothE(\'${template.relation}\').${field} AS \`${_.replace(
             template.target,
             '.',
             '§',

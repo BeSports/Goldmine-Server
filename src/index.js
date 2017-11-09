@@ -191,6 +191,17 @@ const startQuerries = function(Config, publications) {
           type: Types.INIT,
           data: io.sockets.adapter.rooms[hash(room)].serverCache,
         });
+
+        if (payload.isReactive) {
+          // Add publication to client's personal placeholder.
+          connections[socket.id].push(room);
+
+          // Add socket to publication.
+          socket.join(hash(room));
+          if (_.get(Config, 'logging.publications', false)) {
+            console.log('joined', hash(room));
+          }
+        }
         return;
       }
 
