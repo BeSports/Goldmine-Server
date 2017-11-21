@@ -100,7 +100,7 @@ export default class OrientDBQueryResolver {
                 formattedObject[target][key] = {};
               }
 
-              formattedObject[target][key][property] = property.startsWith('_id')
+              formattedObject[target][key][property] = property.startsWith('@rid')
                 ? item.toString()
                 : item;
             });

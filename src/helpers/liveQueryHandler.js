@@ -112,7 +112,6 @@ export default function(io, db, collectionType, shouldLog) {
         },
       );
       _.forEach(roomsWithTemplatesForInsert, room => {
-        console.log(room.publicationNameWithParams);
         insertHandler(io, db, room.room, room.hash, collectionType.name);
       });
     });

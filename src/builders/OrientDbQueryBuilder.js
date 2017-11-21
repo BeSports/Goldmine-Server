@@ -323,7 +323,7 @@ export default class OrientDBQueryBuilder {
     let res = '';
 
     if (template.skip !== undefined) {
-      res += `SKIP :${template.skip}`;
+      res += `SKIP ${template.skip}`;
     }
 
     if (template.limit !== undefined) {
@@ -334,7 +334,7 @@ export default class OrientDBQueryBuilder {
       let limit = template.limit;
 
       if (isNaN(template.limit)) {
-        limit = `:${limit}`;
+        limit = `${limit}`;
       }
 
       res += `LIMIT ${limit}`;
