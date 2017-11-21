@@ -34,7 +34,9 @@ export default class OrientDBQueryResolver {
         _.forEach(values, (value, key) => {
           const response = this.handleResponse(this.templates[key], value);
           result.push({
-            collectionName: _.has(this.templates, `${key}.collection`) ? getCollectionName(this.templates[key]) : _.get(_.first(response.result), 'class', 'undefined'),
+            collectionName: _.has(this.templates, `${key}.collection`)
+              ? getCollectionName(this.templates[key])
+              : _.get(_.first(response.result), 'class', 'undefined'),
             data: response.result,
             cache: response.cache,
           });
@@ -93,7 +95,7 @@ export default class OrientDBQueryResolver {
             }
 
             _.forEach(value, (item, key) => {
-              if(property === '@rid') {
+              if (property === '@rid') {
                 cache.push(item.toString());
               }
               if (formattedObject[target][key] === undefined) {

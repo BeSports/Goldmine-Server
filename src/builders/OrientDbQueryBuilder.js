@@ -107,8 +107,12 @@ export default class OrientDBQueryBuilder {
       if (e instanceof Array) {
         _.map(e, ext => {
           const extendFields = this.buildExtends([ext], parent, true);
-          selectStmt += `${extendFields.selectStmt ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}` : ''} `;
-          whereStmt += `${extendFields.whereStmt ? ` ${_.size(_.trim(whereStmt)) > 0 ? 'OR' : ''} ${extendFields.whereStmt}` : ''}`;
+          selectStmt += `${extendFields.selectStmt
+            ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}`
+            : ''} `;
+          whereStmt += `${extendFields.whereStmt
+            ? ` ${_.size(_.trim(whereStmt)) > 0 ? 'OR' : ''} ${extendFields.whereStmt}`
+            : ''}`;
         });
       } else {
         const buildSelect = this.buildSelectStmt(e, parent);

@@ -51,7 +51,7 @@ const startQuerries = function(Config, publications) {
           _.keys(io.sockets.adapter.rooms),
         )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss /
           (1024 * 1024)
-        ).toFixed(2)}MB, Speed: ${global.counter/(Config.logging.repeat/1000)}req/s`,
+        ).toFixed(2)}MB, Speed: ${global.counter / (Config.logging.repeat / 1000)}req/s`,
       );
       global.counter = 0;
     }, Config.logging.repeat);
@@ -71,25 +71,28 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  global.nextDB().query('SELECT expand(classes) FROM metadata:schema').then(res => {
-    // For each defined class create a livequery
-    _.forEach(res, obj => {
-      // Only classes that were defined by yourself
-      if (obj.superClass === 'V') {
-        collectionTypes.push({
-          name: obj.name,
-          type: Types.VERTEX,
-        });
-        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-      } else if (obj.superClass === 'E') {
-        collectionTypes.push({
-          name: obj.name,
-          type: Types.EDGE,
-        });
-        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-      }
+  global
+    .nextDB()
+    .query('SELECT expand(classes) FROM metadata:schema')
+    .then(res => {
+      // For each defined class create a livequery
+      _.forEach(res, obj => {
+        // Only classes that were defined by yourself
+        if (obj.superClass === 'V') {
+          collectionTypes.push({
+            name: obj.name,
+            type: Types.VERTEX,
+          });
+          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+        } else if (obj.superClass === 'E') {
+          collectionTypes.push({
+            name: obj.name,
+            type: Types.EDGE,
+          });
+          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+        }
+      });
     });
-  });
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
@@ -97,9 +100,12 @@ const startQuerries = function(Config, publications) {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    global.nextDB().query('SELECT _id FROM V LIMIT 1').catch(() => {
-      console.error("Couldn't keep database connection alive!");
-    });
+    global
+      .nextDB()
+      .query('SELECT _id FROM V LIMIT 1')
+      .catch(() => {
+        console.error("Couldn't keep database connection alive!");
+      });
   }, 60 * 1000);
 
   // ---------------------------------------------------------------------------------------------------------------------

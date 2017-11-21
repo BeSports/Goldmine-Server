@@ -75,18 +75,21 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
                 return _.size(_.keys(d)) > 2 || _.size(_.keys(d.differences)) > 0;
               },
             ),
-            _.filter(_.map(serverCache[i].data, da => {
-              if (_.find(cv.data, ['rid', da.rid]) || da.rid === undefined) {
-                return false;
-              } else {
-                return {
-                  removeFromSub: room.publicationNameWithParams,
-                  rid: da.rid.toString(),
-                };
-              }
-            }), o => {
-              return o !== false;
-            }),
+            _.filter(
+              _.map(serverCache[i].data, da => {
+                if (_.find(cv.data, ['rid', da.rid]) || da.rid === undefined) {
+                  return false;
+                } else {
+                  return {
+                    removeFromSub: room.publicationNameWithParams,
+                    rid: da.rid.toString(),
+                  };
+                }
+              }),
+              o => {
+                return o !== false;
+              },
+            ),
           ),
         };
       }),

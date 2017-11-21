@@ -8,7 +8,7 @@ global.counter = 0;
 
 global.nextDB = () => {
   if (++dbNext >= dbMax) {
-    dbNext -= (dbMax - 1);
+    dbNext -= dbMax - 1;
   }
   global.counter++;
   return dbConn[dbNext];
@@ -19,7 +19,17 @@ export default function(Config) {
     dbMax = Config.connections;
   }
   _.times(dbMax, () => {
-    const db = new orientjs.ODatabase(Object.assign({useToken: true}, Config.database));
+    const db = new orientjs.ODatabase(Object.assign({ useToken: true }, Config.database));
     dbConn.push(db);
   });
+
+  // Keeps connection open with OrientDB.
+  setInterval(() => {
+    global
+      .nextDB()
+      .query('SELECT _id FROM V LIMIT 1')
+      .catch(() => {
+        console.error("Couldn't keep database connection alive!");
+      });
+  }, 60 * 1000 / dbMax);
 }
