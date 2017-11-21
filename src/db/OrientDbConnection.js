@@ -1,11 +1,25 @@
 import orientjs from 'orientjs';
+import _ from 'lodash';
 
-export default function (Config) {
-  if(Config.server) {
-    const server = orientjs(Object.assign({useToken: true}, Config.server));
-    return server.use(Config.database);
-  } else {
-    const db = new orientjs.ODatabase(Object.assign({useToken: true}, Config.database));
-    return db;
+let dbConn = [];
+let dbNext = 0;
+let dbMax = 25;
+global.counter = 0;
+
+global.nextDB = () => {
+  if (++dbNext >= dbMax) {
+    dbNext -= (dbMax - 1);
   }
+  global.counter++;
+  return dbConn[dbNext];
 };
+
+export default function(Config) {
+  if (Config.connections) {
+    dbMax = Config.connections;
+  }
+  _.times(dbMax, () => {
+    const db = new orientjs.ODatabase(Object.assign({useToken: true}, Config.database));
+    dbConn.push(db);
+  });
+}

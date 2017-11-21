@@ -19,27 +19,14 @@ let db;
  * @param publications Publications for Goldmine-Server
  */
 
-// Example config object
-// config = {
-//   debug: true,
-//   port: 3020,
-//   database: {
-//     host: 'localhost',
-//     port: 2424,
-//     name: 'Tolkien-Arda',
-//     username: 'admin',
-//     password: 'admin'
-//   },
-// }
-
 //TODO: Validate publications
 //TODO: Validate Config
 const init = function(Config, publications) {
   global.orientDBConfig = Config.database;
-  db = require('./db/OrientDbConnection').default(Config);
-  if (!db) {
+  const done = require('./db/OrientDbConnection').default(Config);
+  if (!global.nextDB()) {
     setTimeout(() => {
-      if (!db) {
+      if (!global.nextDB()) {
         console.log('Connection failed');
       } else {
         startQuerries(Config, publications);
@@ -64,8 +51,9 @@ const startQuerries = function(Config, publications) {
           _.keys(io.sockets.adapter.rooms),
         )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss /
           (1024 * 1024)
-        ).toFixed(2)}MB`,
+        ).toFixed(2)}MB, Speed: ${global.counter/(Config.logging.repeat/1000)}req/s`,
       );
+      global.counter = 0;
     }, Config.logging.repeat);
   }
 
@@ -83,7 +71,7 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  db.query('SELECT expand(classes) FROM metadata:schema').then(res => {
+  global.nextDB().query('SELECT expand(classes) FROM metadata:schema').then(res => {
     // For each defined class create a livequery
     _.forEach(res, obj => {
       // Only classes that were defined by yourself
@@ -109,7 +97,7 @@ const startQuerries = function(Config, publications) {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    db.query('SELECT _id FROM V LIMIT 1').catch(() => {
+    global.nextDB().query('SELECT _id FROM V LIMIT 1').catch(() => {
       console.error("Couldn't keep database connection alive!");
     });
   }, 60 * 1000);

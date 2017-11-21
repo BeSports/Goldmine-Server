@@ -31,7 +31,7 @@ const doCache = (o, cluster, position) => {
 
 export default function(io, db, collectionType, shouldLog) {
   const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
-  db
+  global.nextDB()
     .liveQuery(QUERY)
     .on('live-insert', res => {
       const rid = extractRid(res);
