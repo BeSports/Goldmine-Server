@@ -8,11 +8,11 @@ import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
 import hash from 'object-hash';
-
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server);
 let db;
+global.updates = 0;
 /**
  * Initializes the Goldminejs server with given config and publications
  * @param config Configuration object for Goldmine-Server
@@ -46,14 +46,16 @@ const startQuerries = function(Config, publications) {
 
   if (Config.logging.statistics === true && typeof Config.logging.repeat === 'number') {
     setInterval(() => {
-      console.log(
-        `${new Date().toISOString()} Rooms: ${_.size(
-          _.keys(io.sockets.adapter.rooms),
-        )} Sockets: ${_.size(io.sockets.sockets)}, MemoryTotal: ${(process.memoryUsage().rss /
-          (1024 * 1024)
-        ).toFixed(2)}MB, Speed: ${global.counter / (Config.logging.repeat / 1000)}req/s`,
-      );
+      console.log(`${new Date().toLocaleString()}
+        Rooms: ${_.size(_.keys(io.sockets.adapter.rooms))}
+        Sockets: ${_.size(io.sockets.sockets)}
+        MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB
+        Speed: 
+            ${global.counter / (Config.logging.repeat / 1000)} req/s (total: ${global.counter})
+            ${global.updates /
+              (Config.logging.repeat / 1000)} updates/s (total: ${global.updates})`);
       global.counter = 0;
+      global.updates = 0;
     }, Config.logging.repeat);
   }
 

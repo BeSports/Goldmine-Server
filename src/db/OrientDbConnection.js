@@ -27,7 +27,7 @@ export default function(Config) {
   setInterval(() => {
     global
       .nextDB()
-      .query('SELECT _id FROM V LIMIT 1')
+      .query('SELECT _id FROM user LIMIT 1')
       .catch(() => {
         console.error("Couldn't keep database connection alive!");
       });

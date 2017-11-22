@@ -35,6 +35,7 @@ export default function(io, db, collectionType, shouldLog) {
     .nextDB()
     .liveQuery(QUERY)
     .on('live-insert', res => {
+      global.updates++;
       const rid = extractRid(res);
 
       if (!doCache(omitter(res), res.cluster, res.position)) {
@@ -66,6 +67,7 @@ export default function(io, db, collectionType, shouldLog) {
       });
     })
     .on('live-update', res => {
+      global.updates++;
       const rid = extractRid(res);
       if (!doCache(omitter(res), res.cluster, res.position)) {
         if (shouldLog) {
@@ -94,6 +96,7 @@ export default function(io, db, collectionType, shouldLog) {
       });
     })
     .on('live-delete', res => {
+      global.updates++;
       const rid = extractRid(res);
       if (shouldLog) {
         console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
