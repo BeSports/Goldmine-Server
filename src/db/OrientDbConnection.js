@@ -7,7 +7,8 @@ let dbMax = 25;
 global.counter = 0;
 
 global.nextDB = () => {
-  if (++dbNext >= dbMax) {
+  dbNext++;
+  if (dbNext >= dbMax) {
     dbNext = 0;
   }
   global.counter++;
