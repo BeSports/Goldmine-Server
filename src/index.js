@@ -190,7 +190,9 @@ const startQuerries = function(Config, publications) {
 
         if (payload.isReactive) {
           // Add publication to client's personal placeholder.
-          connections[socket.id].push(room);
+          if (connections[socket.id]) {
+            connections[socket.id].push(room);
+          }
 
           // Add socket to publication.
           socket.join(hash(room));
