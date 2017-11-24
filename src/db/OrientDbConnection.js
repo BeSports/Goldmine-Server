@@ -8,7 +8,7 @@ global.counter = 0;
 
 global.nextDB = () => {
   if (++dbNext >= dbMax) {
-    dbNext -= dbMax - 1;
+    dbNext = 0;
   }
   global.counter++;
   return dbConn[dbNext];
