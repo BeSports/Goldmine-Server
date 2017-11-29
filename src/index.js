@@ -11,8 +11,10 @@ import hash from 'object-hash';
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server);
+let config;
 let db;
 global.updates = 0;
+global.liveQueryTokens = [];
 /**
  * Initializes the Goldminejs server with given config and publications
  * @param config Configuration object for Goldmine-Server
@@ -23,6 +25,7 @@ global.updates = 0;
 //TODO: Validate Config
 const init = function(Config, publications) {
   global.orientDBConfig = Config.database;
+  config = Config;
   const done = require('./db/OrientDbConnection').default(Config);
   if (!global.nextDB()) {
     setTimeout(() => {
@@ -325,4 +328,14 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 };
 
-module.exports = { init };
+const closeAll = async () => {
+  await Promise.all(_.map(global.liveQueryTokens, async (token) => {
+    return await nextDB().query(`live unsubscribe ${token}`);
+  }));
+  console.warn(
+    'GOLDMINE-SERVER is shutting down this process (you called goldmine.closeAll somewhere)',
+  );
+  process.exit(0);
+};
+
+module.exports = { init, closeAll };

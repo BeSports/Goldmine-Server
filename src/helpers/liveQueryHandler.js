@@ -29,11 +29,16 @@ const doCache = (o, cluster, position) => {
   return true;
 };
 
-export default function(io, db, collectionType, shouldLog) {
+export default async function(io, db, collectionType, shouldLog) {
   const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
   global
     .nextDB()
-    .liveQuery(QUERY)
+    .liveQuery(QUERY, {
+      resolver: (a, b) => {
+        global.liveQueryTokens.push(_.first(a).token);
+        return a;
+      },
+    })
     .on('live-insert', res => {
       global.updates++;
       const rid = extractRid(res);
