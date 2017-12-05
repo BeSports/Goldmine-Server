@@ -329,9 +329,11 @@ const startQuerries = function(Config, publications) {
 };
 
 const closeAll = async () => {
-  await Promise.all(_.map(global.liveQueryTokens, async (token) => {
-    return await nextDB().query(`live unsubscribe ${token}`);
-  }));
+  await Promise.all(
+    _.map(global.liveQueryTokens, async token => {
+      return await nextDB().query(`live unsubscribe ${token}`);
+    }),
+  );
   console.warn(
     'GOLDMINE-SERVER is shutting down this process (you called goldmine.closeAll somewhere)',
   );

@@ -30,31 +30,26 @@ export default class OrientDBQueryBuilder {
 
   build() {
     let statements = [];
-
     _.forEach(this.templates, template => {
+      this.tempParams = [];
       if (typeof template === 'string') {
         statements.push(template);
-      } else if (template.fast) {
-        statements.push(this.fastQuerryBuilder(template));
       } else {
         if (!template.collection) {
           console.log(`No collection name was provided to ${template}`);
         }
 
         let selectStmt = null;
-        let fromStmt = null;
-        let whereStmt = null;
+        let whereStmts = null;
         let orderByStmt = null;
         let paginationStmt = null;
 
         // TOP LEVEL
         // select statement
         selectStmt = this.buildSelectStmt(template);
-        // from statement
-        fromStmt = template.collection;
 
         // where statement
-        whereStmt = this.buildWhereStmt(template);
+        whereStmts = this.createWherePaths(template);
 
         // order by statement
         orderByStmt = this.buildOrderByStmt(template);
@@ -69,40 +64,99 @@ export default class OrientDBQueryBuilder {
           _.size(_.trim(extendFields.selectStmt)) !== 0
             ? ', '
             : ' '} ${extendFields.selectStmt}`;
-          if (_.size(whereStmt) !== 0) {
-            if (_.size(extendFields.whereStmt) !== 0) {
-              whereStmt += ` AND ${extendFields.whereStmt}`;
-            }
-          } else {
-            whereStmt = extendFields.whereStmt;
-          }
         }
 
         // Add statement
-        statements.push(
-          `SELECT ${selectStmt} FROM \`${fromStmt}\` ${whereStmt
-            ? 'WHERE ' + whereStmt
-            : ''} ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt
-            ? paginationStmt
-            : ''}`,
-        );
+        let statementTemp = `
+          begin
+          ${/* insert the where clauses built before */ ''}
+          ${_.join(
+            _.map(whereStmts, (whereStmt, i) => {
+              return `let $${i + 1} = ${whereStmt}`;
+            }),
+            ' ;',
+          )}
+          ${/* get all rids where the where clauses are correct */ ''}
+          ${_.size(whereStmts) === 1
+            ? ''
+            : `let $inter = select intersect(${_.join(
+                _.times(_.size(whereStmts), i => {
+                  return `$${i + 1}`;
+                }),
+                ', ',
+              )})`}
+          ${/* Select the requested fields */ ''}
+          let $result = select ${selectStmt} from ${_.size(whereStmts) > 1
+          ? '$inter.intersect'
+          : '$1'} ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt
+          ? paginationStmt
+          : ''};
+          commit
+          return $result
+          `;
+
+        _.map(this.tempParams, function(value, property) {
+          statementTemp = _.replace(
+            statementTemp,
+            ':goldmine' + property,
+            typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value),
+          );
+        });
+
+        statements.push(statementTemp);
       }
     });
 
     return {
       statements,
-      statementParams: this.tempParams.reduce((acc, cur, i) => {
-        acc['goldmine' + i] = cur;
-        return acc;
-      }, {}),
+      statementParams: { class: 's' },
       templates: this.templates,
     };
+  }
+
+  createWherePaths(template) {
+    let paths = [];
+    let ownParams = '';
+    let optionalPaths = [];
+    let relationString = '';
+    if (template.extend && template.extend instanceof Array && _.size(template.extend) > 0) {
+      optionalPaths = _.flatten(
+        _.filter(
+          _.map(template.extend, ext => {
+            return this.createWherePaths(ext);
+          }),
+          r => {
+            return r !== null;
+          },
+        ),
+      );
+    }
+    // string of the current extend its where clauses
+    if (template.params) {
+      ownParams = this.buildObject(template.params, '');
+    }
+    if (template.relation) {
+      relationString = `expand(both('${template.relation}')) `;
+    }
+    if (_.size(optionalPaths) > 0) {
+      return _.map(optionalPaths, path => {
+        return `select ${relationString !== ''
+          ? relationString
+          : ''} from ( ${path} ) ${ownParams !== '' ? 'WHERE' + ownParams : ''}`;
+      });
+    } else if (ownParams !== '' || !template.relation) {
+      return [
+        `select ${relationString !== ''
+          ? relationString
+          : ''}  from \`${template.collection}\` ${ownParams !== '' ? 'WHERE' + ownParams : ''}`,
+      ];
+    }
+    return null;
   }
 
   buildExtends(extend, parent, or) {
     // select statement
     let selectStmt = '';
-    let whereStmt = '';
     _.map(extend, e => {
       if (e instanceof Array) {
         _.map(e, ext => {
@@ -110,60 +164,30 @@ export default class OrientDBQueryBuilder {
           selectStmt += `${extendFields.selectStmt
             ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}`
             : ''} `;
-          whereStmt += `${extendFields.whereStmt
-            ? ` ${_.size(_.trim(whereStmt)) > 0 ? 'OR' : ''} ${extendFields.whereStmt}`
-            : ''}`;
         });
       } else {
         const buildSelect = this.buildSelectStmt(e, parent);
         selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0
           ? ', '
           : ''}${buildSelect}`;
-        const tempWhereStmt = this.buildWhereStmt(e, parent);
         if (e.extend) {
           const extendFields = this.buildExtends(e.extend, parent + `both("${e.relation}").`);
           selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
           _.size(_.trim(extendFields.selectStmt)) !== 0
             ? ', '
             : ''}${extendFields.selectStmt}`;
-          if (_.size(whereStmt) !== 0) {
-            if (_.size(extendFields.whereStmt) !== 0) {
-              whereStmt += ` ${or ? 'OR' : 'AND'} ${extendFields.whereStmt}`;
-            }
-          } else {
-            whereStmt = extendFields.whereStmt;
-          }
-        }
-        if (_.size(whereStmt) !== 0) {
-          if (_.size(tempWhereStmt) !== 0) {
-            whereStmt += ` ${or ? 'OR' : 'AND'} ${tempWhereStmt}`;
-          }
-        } else {
-          whereStmt = tempWhereStmt;
         }
       }
     });
 
     return {
       selectStmt,
-      whereStmt,
     };
   }
 
   setNextParamAvailable(value) {
     this.tempParams.push(value);
     return _.size(this.tempParams) - 1;
-  }
-
-  fastQuerryBuilder(template) {
-    let query = `select expand(bothV()[@class="${template.collection}"]) from (`;
-    query += `select expand(bothE('${template.extend[0].relation}')) from ${template.extend[0]
-      .collection} where ${this.buildWhereStmt(
-      _.pick(template.extend[0], ['collection', 'params']),
-      '',
-    )})`;
-    query += this.buildWhereStmt(template) ? ` where ${this.buildWhereStmt(template)}` : '';
-    return query;
   }
 
   buildSelectStmt(template, parent) {
@@ -219,24 +243,6 @@ export default class OrientDBQueryBuilder {
       }
     }
 
-    return res;
-  }
-
-  buildWhereStmt(template, parent) {
-    let edge = '';
-    if (template.target !== undefined) {
-      edge = parent + '' + this.buildEdge(template.relation, template.direction);
-    }
-    let res = '';
-    if (template.params instanceof Object) {
-      res = this.buildObject(template.params, edge);
-    } else if (template.params instanceof Array) {
-      _.forEach(template.params, (param, key) => {
-        res += this.buildObject(param, edge) + (_.size(template.params) - 1 > key ? ' OR' : '');
-      });
-    } else if (typeof template.params === 'string') {
-      res += this.buildPropertyValuePair('_id', template.params, '=', edge);
-    }
     return res;
   }
 

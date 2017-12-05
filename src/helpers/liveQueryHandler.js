@@ -74,6 +74,10 @@ export default async function(io, db, collectionType, shouldLog) {
     .on('live-update', res => {
       global.updates++;
       const rid = extractRid(res);
+      if(!rid) {
+        console.log(`UPDATE SKIPPED empty (${collectionType.name})(${rid})(version:${res.version})`);
+        return;
+      }
       if (!doCache(omitter(res), res.cluster, res.position)) {
         if (shouldLog) {
           console.log(`UPDATE SKIPPED (${collectionType.name})(${rid})(version:${res.version})`);
@@ -97,7 +101,8 @@ export default async function(io, db, collectionType, shouldLog) {
         },
       );
       _.forEach(roomsWithTemplatesForInsert, room => {
-        insertHandler(io, db, room.room, room.hash, collectionType.name);
+        console.log(room.room.publicationNameWithParams);
+        insertHandler(io, db, room.room, room.hash, collectionType.name, rid);
       });
     })
     .on('live-delete', res => {

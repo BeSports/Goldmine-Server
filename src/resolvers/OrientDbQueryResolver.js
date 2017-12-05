@@ -23,14 +23,14 @@ export default class OrientDBQueryResolver {
 
   resolve(params) {
     let promises = [];
+
     _.forEach(this.queries, query => {
-      promises.push(global.nextDB().query(query, { params }));
+      promises.push(global.nextDB().query(query, { class: 's' }));
     });
 
     return Promise.all(promises)
       .then(values => {
         let result = [];
-
         _.forEach(values, (value, key) => {
           const response = this.handleResponse(this.templates[key], value);
           result.push({
@@ -41,7 +41,6 @@ export default class OrientDBQueryResolver {
             cache: response.cache,
           });
         });
-
         return result;
       })
       .catch(err => {
