@@ -9,6 +9,9 @@ import {
   flattenExtend,
 } from './helperFunctions';
 import OperationTypes from '../enums/OperationTypes';
+const {
+  performance
+} = require('perf_hooks');
 const deepDifference = require('deep-diff');
 /**
  * Handles inserts from the live queries.
@@ -19,6 +22,7 @@ const deepDifference = require('deep-diff');
  * @param cache
  */
 export default function insertHandler(io, db, room, roomHash, collectionName) {
+  const t0 = performance.now();
   let filteredRoomQueries = [];
   let filteredRoomTemplates = [];
   let filteredIndexes = [];
@@ -36,6 +40,8 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
   });
   const resolver = new Resolver(db, filteredRoomTemplates, filteredRoomQueries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
+    const t1 = performance.now();
+    console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
       return {
         collectionName: d.collectionName,

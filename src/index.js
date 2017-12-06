@@ -3,6 +3,7 @@ import http from 'http';
 import Express from 'express';
 import Server from 'socket.io';
 import liveQueryHandler from './helpers/liveQueryHandler';
+import insertHandler from './helpers/insertHandler';
 import { extractPublicationName, extractParams, serverParamsUsed } from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
@@ -108,28 +109,25 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  global
-    .nextDB()
-    .query('SELECT expand(classes) FROM metadata:schema')
-    .then(res => {
-      // For each defined class create a livequery
-      _.forEach(res, obj => {
-        // Only classes that were defined by yourself
-        if (obj.superClass === 'V') {
-          collectionTypes.push({
-            name: obj.name,
-            type: Types.VERTEX,
-          });
-          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-        } else if (obj.superClass === 'E') {
-          collectionTypes.push({
-            name: obj.name,
-            type: Types.EDGE,
-          });
-          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-        }
-      });
+  global.nextDB().query('SELECT expand(classes) FROM metadata:schema').then(res => {
+    // For each defined class create a livequery
+    _.forEach(res, obj => {
+      // Only classes that were defined by yourself
+      if (obj.superClass === 'V') {
+        collectionTypes.push({
+          name: obj.name,
+          type: Types.VERTEX,
+        });
+        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+      } else if (obj.superClass === 'E') {
+        collectionTypes.push({
+          name: obj.name,
+          type: Types.EDGE,
+        });
+        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+      }
     });
+  });
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
@@ -137,12 +135,9 @@ const startQuerries = function(Config, publications) {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    global
-      .nextDB()
-      .query('SELECT _id FROM V LIMIT 1')
-      .catch(() => {
-        console.error("Couldn't keep database connection alive!");
-      });
+    global.nextDB().query('SELECT _id FROM V LIMIT 1').catch(() => {
+      console.error("Couldn't keep database connection alive!");
+    });
   }, 60 * 1000);
 
   // ---------------------------------------------------------------------------------------------------------------------
@@ -296,6 +291,10 @@ const startQuerries = function(Config, publications) {
           ].publicationNameWithParams = publicationNameWithParams;
           io.sockets.adapter.rooms[hash(room)].queries = queries;
           io.sockets.adapter.rooms[hash(room)].templates = templates;
+          io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
+            leading: false,
+            trailing: true,
+          });
         }
       });
     });

@@ -87,7 +87,7 @@ export default async function(io, db, collectionType, shouldLog) {
       }
 
       _.forEach(roomsWithTemplatesForInsert, room => {
-        insertHandler(io, db, room.room, room.hash, collectionType.name);
+        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name);
       });
     })
     .on('live-update', res => {
@@ -108,7 +108,7 @@ export default async function(io, db, collectionType, shouldLog) {
       );
 
       _.forEach(roomsWithTemplatesForInsert, room => {
-        insertHandler(io, db, room.room, room.hash, collectionType.name, rid);
+        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name, rid);
       });
     })
     .on('live-delete', res => {
@@ -132,7 +132,7 @@ export default async function(io, db, collectionType, shouldLog) {
         },
       );
       _.forEach(roomsWithTemplatesForInsert, room => {
-        insertHandler(io, db, room.room, room.hash, collectionType.name);
+        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name);
       });
     });
 }
