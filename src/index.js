@@ -15,6 +15,17 @@ let config;
 let db;
 global.updates = 0;
 global.liveQueryTokens = [];
+global.counter = {
+  emptyUpdate: 0,
+  dbCalls: 0,
+  skippedByObejctCache: 0,
+  newlyInsertedInChache: 0,
+  hasNoEdges: 0,
+  updates: 0,
+  shallowCompareRooms: 0,
+  serverCacheUsed: 0,
+};
+
 /**
  * Initializes the Goldminejs server with given config and publications
  * @param config Configuration object for Goldmine-Server
@@ -54,11 +65,32 @@ const startQuerries = function(Config, publications) {
         Sockets: ${_.size(io.sockets.sockets)}
         MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB
         Speed: 
-            ${global.counter / (Config.logging.repeat / 1000)} req/s (total: ${global.counter})
-            ${global.updates /
-              (Config.logging.repeat / 1000)} updates/s (total: ${global.updates})`);
-      global.counter = 0;
-      global.updates = 0;
+            ${global.counter.dbCalls / (Config.logging.repeat / 1000)} dbCalls/s (total: ${global
+        .counter.dbCalls})
+            ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${global
+        .counter.updates})
+            ${global.counter.skippedByObejctCache /
+              (Config.logging.repeat / 1000)} skippedByObejctCache/s (total: ${global.counter
+        .skippedByObejctCache})
+            ${global.counter.newlyInsertedInChache /
+              (Config.logging.repeat / 1000)} insertedInChache/s (total: ${global.counter
+        .newlyInsertedInChache})
+            ${global.counter.hasNoEdges /
+              (Config.logging.repeat / 1000)} hasNoEdges/s (total: ${global.counter.hasNoEdges})
+            ${global.counter.shallowCompareRooms /
+              (Config.logging.repeat / 1000)} shallowCompareRooms/s (total: ${global.counter
+        .shallowCompareRooms})
+            ${global.counter.serverCacheUsed /
+              (Config.logging.repeat / 1000)} serverCacheUsed/s (total: ${global.counter
+        .serverCacheUsed})`);
+
+      global.counter.dbCalls = 0;
+      global.counter.skippedByObejctCache = 0;
+      global.counter.newlyInsertedInChache = 0;
+      global.counter.hasNoEdges = 0;
+      global.counter.updates = 0;
+      global.counter.shallowCompareRooms = 0;
+      global.counter.serverCacheUsed = 0;
     }, Config.logging.repeat);
   }
 
@@ -184,7 +216,7 @@ const startQuerries = function(Config, publications) {
 
       // room already exists
       if (_.has(io.sockets.adapter.rooms, hash(room))) {
-        console.log('reusing data from servercache for subscription: ', publicationNameWithParams);
+        global.counter.serverCacheUsed++;
         //emits the serverdata to the new member of the room without refetching
         socket.emit(payload.publicationNameWithParams, {
           type: Types.INIT,

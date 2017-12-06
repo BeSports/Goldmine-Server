@@ -18,7 +18,7 @@ const deepDifference = require('deep-diff');
  * @param insertedObject
  * @param cache
  */
-export default function insertHandler(io, db, room, roomHash, collectionName, rid) {
+export default function insertHandler(io, db, room, roomHash, collectionName) {
   let filteredRoomQueries = [];
   let filteredRoomTemplates = [];
   let filteredIndexes = [];

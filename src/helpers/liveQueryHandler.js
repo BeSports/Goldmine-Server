@@ -11,7 +11,19 @@ import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
 
-const versionCache = {};
+const objectCache = {};
+
+const hasNoEdges = object => {
+  if (
+    _.find(_.keys(object), key => {
+      return _.startsWith(key, 'out') || _.startsWith(key, 'in');
+    })
+  ) {
+    return false;
+  }
+  global.counter.hasNoEdges++;
+  return true;
+};
 
 const omitter = o => {
   return _.omitBy(o.content, (val, key) => {
@@ -21,12 +33,28 @@ const omitter = o => {
 
 const doCache = (o, cluster, position) => {
   //object is in cache and correct version
-  if (_.isMatch(_.get(versionCache, `[${cluster}][${position}]`, false), o)) {
+  if (_.isMatch(_.get(objectCache, `[${cluster}][${position}]`, false), o)) {
+    global.counter.skippedByObejctCache++;
     return false;
   }
   // set it if inexistent or changed
-  _.set(versionCache, `[${cluster}][${position}]`, o);
+  global.counter.newlyInsertedInChache++;
+  _.set(objectCache, `[${cluster}][${position}]`, o);
   return true;
+};
+
+const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
+  return _.filter(
+    _.map(rooms, (value, key) => {
+      return _.find(flattenExtend(value.templates), [
+        isEdgeCheck ? 'relation' : 'collection',
+        collectionName,
+      ])
+        ? { room: value, hash: key }
+        : null;
+    }),
+    _.size,
+  );
 };
 
 export default async function(io, db, collectionType, shouldLog) {
@@ -40,68 +68,46 @@ export default async function(io, db, collectionType, shouldLog) {
       },
     })
     .on('live-insert', res => {
-      global.updates++;
-      const rid = extractRid(res);
-
+      global.counter.updates++;
       if (!doCache(omitter(res), res.cluster, res.position)) {
-        if (shouldLog) {
-          console.log(`INSERT SKIPPED (${collectionType.name})(${rid})`);
-        }
         return;
       }
-      if (shouldLog) {
-        console.log(`INSERT DETECTED (${collectionType.name})(${rid})`);
+      if (hasNoEdges(res.content)) {
+        return;
       }
       // inserted an edge
-      let roomsWithTemplatesForInsert = _.filter(
-        _.map(io.sockets.adapter.rooms, (value, key) => {
-          return _.find(flattenExtend(value.templates), [
-            _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
-            collectionType.name,
-          ])
-            ? { room: value, hash: key }
-            : null;
-        }),
-        x => {
-          return x !== null;
-        },
+      let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
+        io.sockets.adapter.rooms,
+        collectionType.name,
+        _.includes(res.content['@class'], '_')
       );
+      if(_.size(roomsWithTemplatesForInsert) === 0) {
+        global.counter.shallowCompareRooms++;
+        return;
+      }
 
       _.forEach(roomsWithTemplatesForInsert, room => {
         insertHandler(io, db, room.room, room.hash, collectionType.name);
       });
     })
     .on('live-update', res => {
-      global.updates++;
+      global.counter.updates++;
       const rid = extractRid(res);
-      if(!rid) {
-        console.log(`UPDATE SKIPPED empty (${collectionType.name})(${rid})(version:${res.version})`);
+      if (!rid) {
+        global.counter.emptyUpdate++;
         return;
       }
       if (!doCache(omitter(res), res.cluster, res.position)) {
-        if (shouldLog) {
-          console.log(`UPDATE SKIPPED (${collectionType.name})(${rid})(version:${res.version})`);
-        }
         return;
       }
-      if (shouldLog) {
-        console.log(`UPDATE DETECTED (${collectionType.name})(${rid})(version:${res.version})`);
-      }
-      let roomsWithTemplatesForInsert = _.filter(
-        _.map(io.sockets.adapter.rooms, (value, key) => {
-          return _.find(flattenExtend(value.templates), [
-            _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
-            collectionType.name,
-          ])
-            ? { room: value, hash: key }
-            : null;
-        }),
-        x => {
-          return x !== null;
-        },
+
+      let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
+        io.sockets.adapter.rooms,
+        collectionType.name,
+        _.includes(res.content['@class'], '_')
       );
+
       _.forEach(roomsWithTemplatesForInsert, room => {
-        console.log(room.room.publicationNameWithParams);
         insertHandler(io, db, room.room, room.hash, collectionType.name, rid);
       });
     })

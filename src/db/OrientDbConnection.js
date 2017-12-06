@@ -4,14 +4,14 @@ import _ from 'lodash';
 let dbConn = [];
 let dbNext = 0;
 let dbMax = 25;
-global.counter = 0;
+global.counter.dbCalls = 0;
 
 global.nextDB = () => {
   dbNext++;
   if (dbNext >= dbMax) {
     dbNext = 0;
   }
-  global.counter++;
+  global.counter.dbCalls++;
   return dbConn[dbNext];
 };
 
