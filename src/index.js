@@ -16,6 +16,7 @@ let config;
 let db;
 global.updates = 0;
 global.liveQueryTokens = [];
+global.objectCache = {};
 global.counter = {
   emptyUpdate: 0,
   dbCalls: 0,

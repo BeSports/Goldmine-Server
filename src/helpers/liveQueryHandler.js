@@ -11,8 +11,6 @@ import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
 
-const objectCache = {};
-
 const hasNoEdges = object => {
   if (
     _.find(_.keys(object), key => {
@@ -33,13 +31,14 @@ const omitter = o => {
 
 const doCache = (o, cluster, position) => {
   //object is in cache and correct version
-  if (_.isMatch(_.get(objectCache, `[${cluster}][${position}]`, false), o)) {
+  if (_.isMatch(_.get(global.objectCache, `[${cluster}][${position}]`, false), o)) {
     global.counter.skippedByObejctCache++;
     return false;
   }
+
   // set it if inexistent or changed
   global.counter.newlyInsertedInChache++;
-  _.set(objectCache, `[${cluster}][${position}]`, o);
+  _.set(global.objectCache, `[${cluster}][${position}]`, o);
   return true;
 };
 
@@ -79,9 +78,9 @@ export default async function(io, db, collectionType, shouldLog) {
       let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
         io.sockets.adapter.rooms,
         collectionType.name,
-        _.includes(res.content['@class'], '_')
+        _.includes(res.content['@class'], '_'),
       );
-      if(_.size(roomsWithTemplatesForInsert) === 0) {
+      if (_.size(roomsWithTemplatesForInsert) === 0) {
         global.counter.shallowCompareRooms++;
         return;
       }
@@ -104,7 +103,7 @@ export default async function(io, db, collectionType, shouldLog) {
       let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
         io.sockets.adapter.rooms,
         collectionType.name,
-        _.includes(res.content['@class'], '_')
+        _.includes(res.content['@class'], '_'),
       );
 
       _.forEach(roomsWithTemplatesForInsert, room => {
