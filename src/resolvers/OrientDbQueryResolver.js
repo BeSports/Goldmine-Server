@@ -2,6 +2,13 @@ import _ from 'lodash';
 import pluralize from 'pluralize';
 import { flattenExtend, getCollectionName, extractRid } from '../helpers/helperFunctions';
 
+const setCache = (object) => {
+  if(!_.has(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`)) {
+    global.counter.insertedFromInit++;
+    _.set(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`, object);
+  }
+};
+
 export default class OrientDBQueryResolver {
   constructor(db, templates, queries, decoded, allowAll) {
     this.db = db;
@@ -75,6 +82,7 @@ export default class OrientDBQueryResolver {
             cache.push(value.toString());
           }
         } else if (_.size(_.get(template, 'extend')) > 0) {
+          setCache(formattedObject);
           const index = key.indexOf('§');
           const target = key.substr(0, index);
           const property = key.substr(index + 1);

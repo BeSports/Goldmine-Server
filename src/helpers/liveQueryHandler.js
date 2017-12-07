@@ -32,7 +32,7 @@ const omitter = o => {
 const doCache = (o, cluster, position) => {
   //object is in cache and correct version
   if (_.isMatch(_.get(global.objectCache, `[${cluster}][${position}]`, false), o)) {
-    global.counter.skippedByObejctCache++;
+    global.counter.skippedByObjectCache++;
     return false;
   }
 

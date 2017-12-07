@@ -20,12 +20,13 @@ global.objectCache = {};
 global.counter = {
   emptyUpdate: 0,
   dbCalls: 0,
-  skippedByObejctCache: 0,
+  skippedByObjectCache: 0,
   newlyInsertedInChache: 0,
   hasNoEdges: 0,
   updates: 0,
   shallowCompareRooms: 0,
   serverCacheUsed: 0,
+  insertedFromInit: 0,
 };
 
 /**
@@ -71,12 +72,15 @@ const startQuerries = function(Config, publications) {
         .counter.dbCalls})
             ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${global
         .counter.updates})
-            ${global.counter.skippedByObejctCache /
+            ${global.counter.skippedByObjectCache /
               (Config.logging.repeat / 1000)} skippedByObejctCache/s (total: ${global.counter
-        .skippedByObejctCache})
+        .skippedByObjectCache})
             ${global.counter.newlyInsertedInChache /
               (Config.logging.repeat / 1000)} insertedInChache/s (total: ${global.counter
         .newlyInsertedInChache})
+            ${global.counter.insertedFromInit /
+              (Config.logging.repeat / 1000)} insertedFromInitIntoCache/s (total: ${global.counter
+        .insertedFromInit})
             ${global.counter.hasNoEdges /
               (Config.logging.repeat / 1000)} hasNoEdges/s (total: ${global.counter.hasNoEdges})
             ${global.counter.shallowCompareRooms /
@@ -87,12 +91,13 @@ const startQuerries = function(Config, publications) {
         .serverCacheUsed})`);
 
       global.counter.dbCalls = 0;
-      global.counter.skippedByObejctCache = 0;
+      global.counter.skippedByObjectCache = 0;
       global.counter.newlyInsertedInChache = 0;
       global.counter.hasNoEdges = 0;
       global.counter.updates = 0;
       global.counter.shallowCompareRooms = 0;
       global.counter.serverCacheUsed = 0;
+      global.counter.insertedFromInit = 0;
     }, Config.logging.repeat);
   }
 
@@ -110,25 +115,28 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  global.nextDB().query('SELECT expand(classes) FROM metadata:schema').then(res => {
-    // For each defined class create a livequery
-    _.forEach(res, obj => {
-      // Only classes that were defined by yourself
-      if (obj.superClass === 'V') {
-        collectionTypes.push({
-          name: obj.name,
-          type: Types.VERTEX,
-        });
-        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-      } else if (obj.superClass === 'E') {
-        collectionTypes.push({
-          name: obj.name,
-          type: Types.EDGE,
-        });
-        liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-      }
+  global
+    .nextDB()
+    .query('SELECT expand(classes) FROM metadata:schema')
+    .then(res => {
+      // For each defined class create a livequery
+      _.forEach(res, obj => {
+        // Only classes that were defined by yourself
+        if (obj.superClass === 'V') {
+          collectionTypes.push({
+            name: obj.name,
+            type: Types.VERTEX,
+          });
+          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+        } else if (obj.superClass === 'E') {
+          collectionTypes.push({
+            name: obj.name,
+            type: Types.EDGE,
+          });
+          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+        }
+      });
     });
-  });
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
@@ -136,9 +144,12 @@ const startQuerries = function(Config, publications) {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    global.nextDB().query('SELECT _id FROM V LIMIT 1').catch(() => {
-      console.error("Couldn't keep database connection alive!");
-    });
+    global
+      .nextDB()
+      .query('SELECT _id FROM V LIMIT 1')
+      .catch(() => {
+        console.error("Couldn't keep database connection alive!");
+      });
   }, 60 * 1000);
 
   // ---------------------------------------------------------------------------------------------------------------------
