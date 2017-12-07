@@ -22,7 +22,6 @@ global.counter = {
   dbCalls: 0,
   skippedByObjectCache: 0,
   newlyInsertedInChache: 0,
-  hasNoEdges: 0,
   updates: 0,
   shallowCompareRooms: 0,
   serverCacheUsed: 0,
@@ -81,8 +80,6 @@ const startQuerries = function(Config, publications) {
             ${global.counter.insertedFromInit /
               (Config.logging.repeat / 1000)} insertedFromInitIntoCache/s (total: ${global.counter
         .insertedFromInit})
-            ${global.counter.hasNoEdges /
-              (Config.logging.repeat / 1000)} hasNoEdges/s (total: ${global.counter.hasNoEdges})
             ${global.counter.shallowCompareRooms /
               (Config.logging.repeat / 1000)} shallowCompareRooms/s (total: ${global.counter
         .shallowCompareRooms})
@@ -93,7 +90,6 @@ const startQuerries = function(Config, publications) {
       global.counter.dbCalls = 0;
       global.counter.skippedByObjectCache = 0;
       global.counter.newlyInsertedInChache = 0;
-      global.counter.hasNoEdges = 0;
       global.counter.updates = 0;
       global.counter.shallowCompareRooms = 0;
       global.counter.serverCacheUsed = 0;
