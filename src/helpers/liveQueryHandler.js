@@ -12,18 +12,6 @@ import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
 import shallowequal from 'shallowequal';
 
-const hasNoEdges = object => {
-  if (
-    _.find(_.keys(object), key => {
-      return _.startsWith(key, 'out') || _.startsWith(key, 'in');
-    })
-  ) {
-    return false;
-  }
-  global.counter.hasNoEdges++;
-  return true;
-};
-
 const omitter = o => {
   return _.omitBy(o.content, (val, key) => {
     return _.startsWith(key, 'out') || _.startsWith(key, 'in');
@@ -37,6 +25,17 @@ const doCache = (o, cluster, position) => {
     return false;
   }
   return true;
+};
+
+const searchForMatchingRids = (rooms, insertedObject) => {
+  if (_.includes(insertedObject['@class'], '_')) {
+    const edgeRelatedIds = [extractRid(insertedObject.in), extractRid(insertedObject.out)]
+    return _.filter(rooms, room => {
+      return _.difference(edgeRelatedIds, room.cache).length < 2;
+    });
+  }
+
+  return rooms;
 };
 
 const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
@@ -86,17 +85,19 @@ export default async function(io, db, collectionType, shouldLog) {
     })
     .on('live-insert', res => {
       global.counter.updates++;
+
       if (!doCache(omitter(res), res.cluster, res.position)) {
         return;
       }
-      if (hasNoEdges(res.content)) {
-        return;
-      }
+
 
       const totalRooms = _.size(io.sockets.adapter.rooms);
+
+      const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res.content);
+
       // inserted an edge
-      let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
-        io.sockets.adapter.rooms,
+      let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
+        roomsWithMatchingRids,
         collectionType.name,
         _.includes(res.content['@class'], '_'),
       );
