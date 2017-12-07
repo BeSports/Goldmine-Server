@@ -29,6 +29,7 @@ global.counter = {
   totalRoomsChecked: 0,
   roomsRemovedByShallowCompare: 0,
   roomsRemovedByDeepCompare: 0,
+  roomsRemovedByNonMatchingRids: 0,
 };
 
 /**
@@ -97,7 +98,10 @@ const startQuerries = function(Config, publications) {
         .counter.roomsRemovedByShallowCompare})
             ${global.counter.roomsRemovedByDeepCompare /
               (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${global.counter
-        .roomsRemovedByDeepCompare})`);
+        .roomsRemovedByDeepCompare})
+            ${global.counter.roomsRemovedByNonMatchingRids /
+              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${global.counter
+        .roomsRemovedByNonMatchingRids})`);
 
       global.counter.dbCalls = 0;
       global.counter.skippedByObjectCache = 0;
@@ -109,6 +113,7 @@ const startQuerries = function(Config, publications) {
       global.counter.totalRoomsChecked = 0;
       global.counter.roomsRemovedByShallowCompare = 0;
       global.counter.roomsRemovedByDeepCompare = 0;
+      global.counter.roomsRemovedByNonMatchingRids = 0;
     }, Config.logging.repeat);
   }
 
@@ -307,12 +312,14 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
+          io.sockets.adapter.rooms[hash(room)].hash = hash(room);
           io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
           io.sockets.adapter.rooms[
             hash(room)
           ].publicationNameWithParams = publicationNameWithParams;
           io.sockets.adapter.rooms[hash(room)].queries = queries;
+          io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
           io.sockets.adapter.rooms[hash(room)].templates = templates;
           io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
             leading: false,

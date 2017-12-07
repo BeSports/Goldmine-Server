@@ -52,7 +52,7 @@ export function extractParams(publicationNameWithParams) {
 }
 
 export function emitResults(io, roomHash, room, type, data) {
-  io.to(roomHash).emit(room.publicationNameWithParams, {
+  io.to(room.hash).emit(room.publicationNameWithParams, {
     type: type,
     publicationNameWithParams: room.publicationNameWithParams,
     data: data,
