@@ -27,6 +27,9 @@ global.counter = {
   shallowCompareRooms: 0,
   serverCacheUsed: 0,
   insertedFromInit: 0,
+  totalRoomsChecked: 0,
+  roomsRemovedByShallowCompare: 0,
+  roomsRemovedByDeepCompare: 0,
 };
 
 /**
@@ -88,7 +91,16 @@ const startQuerries = function(Config, publications) {
         .shallowCompareRooms})
             ${global.counter.serverCacheUsed /
               (Config.logging.repeat / 1000)} serverCacheUsed/s (total: ${global.counter
-        .serverCacheUsed})`);
+        .serverCacheUsed})
+            ${global.counter.totalRoomsChecked /
+              (Config.logging.repeat / 1000)} totalRoomsChecked/s (total: ${global.counter
+        .totalRoomsChecked})
+            ${global.counter.roomsRemovedByShallowCompare /
+              (Config.logging.repeat / 1000)} roomsRemovedByShallowCompare/s (total: ${global
+        .counter.roomsRemovedByShallowCompare})
+            ${global.counter.roomsRemovedByDeepCompare /
+              (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${global.counter
+        .roomsRemovedByDeepCompare})`);
 
       global.counter.dbCalls = 0;
       global.counter.skippedByObjectCache = 0;
@@ -98,6 +110,9 @@ const startQuerries = function(Config, publications) {
       global.counter.shallowCompareRooms = 0;
       global.counter.serverCacheUsed = 0;
       global.counter.insertedFromInit = 0;
+      global.counter.totalRoomsChecked = 0;
+      global.counter.roomsRemovedByShallowCompare = 0;
+      global.counter.roomsRemovedByDeepCompare = 0;
     }, Config.logging.repeat);
   }
 

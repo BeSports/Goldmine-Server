@@ -10,6 +10,7 @@ import {
 import Types from '../enums/Types';
 import insertHandler from './insertHandler';
 import * as pluralize from 'pluralize';
+import shallowequal from 'shallowequal';
 
 const hasNoEdges = object => {
   if (
@@ -35,15 +36,11 @@ const doCache = (o, cluster, position) => {
     global.counter.skippedByObjectCache++;
     return false;
   }
-
-  // set it if inexistent or changed
-  global.counter.newlyInsertedInChache++;
-  _.set(global.objectCache, `[${cluster}][${position}]`, o);
   return true;
 };
 
 const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
-  return _.filter(
+  return _.compact(
     _.map(rooms, (value, key) => {
       return _.find(flattenExtend(value.templates), [
         isEdgeCheck ? 'relation' : 'collection',
@@ -52,8 +49,29 @@ const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
         ? { room: value, hash: key }
         : null;
     }),
-    _.size,
   );
+};
+
+const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => {
+  const oldObject = _.get(global.objectCache, `[${res.cluster}][${res.position}]`, {});
+  const toReturn = _.compact(
+    _.map(rooms, (value, key) => {
+      const relevantFlattendTemplateParts = _.filter(flattenExtend(value.room.templates), [
+        isEdgeCheck ? 'relation' : 'collection',
+        collectionName,
+      ]);
+      const relevantFields = _.uniq(_.flatten(_.compact(_.map(relevantFlattendTemplateParts, 'fields'))));
+      const oldObjectRelevantFields = _.pick(oldObject, relevantFields);
+      const newObjectRelevantFields = _.pick(omitter(res), relevantFields);
+      const isEqualForSelectedFields = shallowequal(
+        oldObjectRelevantFields,
+        newObjectRelevantFields,
+      );
+      return isEqualForSelectedFields ? null : value;
+    }),
+  );
+  _.set(global.objectCache, `[${res.cluster}][${res.position}]`, omitter(res));
+  return toReturn;
 };
 
 export default async function(io, db, collectionType, shouldLog) {
@@ -74,18 +92,31 @@ export default async function(io, db, collectionType, shouldLog) {
       if (hasNoEdges(res.content)) {
         return;
       }
+
+      const totalRooms = _.size(io.sockets.adapter.rooms);
       // inserted an edge
-      let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
+      let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
         io.sockets.adapter.rooms,
         collectionType.name,
         _.includes(res.content['@class'], '_'),
       );
-      if (_.size(roomsWithTemplatesForInsert) === 0) {
-        global.counter.shallowCompareRooms++;
-        return;
-      }
+      const roomsRemovedByShallowCompare = totalRooms - _.size(roomsWithShallowTemplatesForInsert);
 
-      _.forEach(roomsWithTemplatesForInsert, room => {
+      let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
+        roomsWithShallowTemplatesForInsert,
+        collectionType.name,
+        _.includes(res.content['@class'], '_'),
+        res,
+      );
+
+      const roomsRemovedByDeepCompare =
+        totalRooms - roomsRemovedByShallowCompare - _.size(roomsWithDeepTemplatesForInsert);
+
+      global.counter.totalRoomsChecked += totalRooms;
+      global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;
+      global.counter.roomsRemovedByDeepCompare += roomsRemovedByDeepCompare;
+
+      _.forEach(roomsWithDeepTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, collectionType.name);
       });
     })
@@ -100,13 +131,30 @@ export default async function(io, db, collectionType, shouldLog) {
         return;
       }
 
-      let roomsWithTemplatesForInsert = shallowSearchForMatchingRooms(
+      const totalRooms = _.size(io.sockets.adapter.rooms);
+      // inserted an edge
+      let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
         io.sockets.adapter.rooms,
         collectionType.name,
         _.includes(res.content['@class'], '_'),
       );
+      const roomsRemovedByShallowCompare = totalRooms - _.size(roomsWithShallowTemplatesForInsert);
 
-      _.forEach(roomsWithTemplatesForInsert, room => {
+      let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
+        roomsWithShallowTemplatesForInsert,
+        collectionType.name,
+        _.includes(res.content['@class'], '_'),
+        res,
+      );
+
+      const roomsRemovedByDeepCompare =
+        totalRooms - roomsRemovedByShallowCompare - _.size(roomsWithDeepTemplatesForInsert);
+
+      global.counter.totalRoomsChecked += totalRooms;
+      global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;
+      global.counter.roomsRemovedByDeepCompare += roomsRemovedByDeepCompare;
+
+      _.forEach(roomsWithDeepTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, collectionType.name, rid);
       });
     })
