@@ -68,7 +68,6 @@ const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
         ),
       ),
     ]);
-
     return _.filter(rooms, room => {
       return (
         _.difference(edgeRelatedIds, room.cache).length < 2 ||
@@ -197,7 +196,8 @@ export default async function(io, db, collectionType, shouldLog) {
         _.includes(res.content['@class'], '_'),
       );
 
-      const roomsRemovedByShallowCompare = totalRooms - roomsRemovedByMatchingRids - _.size(roomsWithShallowTemplatesForInsert);
+      const roomsRemovedByShallowCompare =
+        totalRooms - roomsRemovedByMatchingRids - _.size(roomsWithShallowTemplatesForInsert);
 
       let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
         roomsWithShallowTemplatesForInsert,
@@ -207,7 +207,10 @@ export default async function(io, db, collectionType, shouldLog) {
       );
 
       const roomsRemovedByDeepCompare =
-        totalRooms - roomsRemovedByShallowCompare - roomsRemovedByMatchingRids -_.size(roomsWithDeepTemplatesForInsert);
+        totalRooms -
+        roomsRemovedByShallowCompare -
+        roomsRemovedByMatchingRids -
+        _.size(roomsWithDeepTemplatesForInsert);
 
       global.counter.totalRoomsChecked += totalRooms;
       global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;

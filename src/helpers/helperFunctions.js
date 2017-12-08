@@ -100,12 +100,14 @@ export function getParameteredIdsOfTemplate(templates, params, decoded) {
     return _.set(_.omit(template, ['relation', 'target', 'fields']), 'fields', ['@rid']);
   });
   const queryBuilds = new QueryBuilder(reconstructedTemplates, params, decoded).build();
-  new QueryResolver({}, queryBuilds.templates, queryBuilds.statements, decoded).resolve(queryBuilds.statementParams).then(data => {
-    const cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
-      return !_.startsWith(c, '#-2');
+  return new QueryResolver({}, queryBuilds.templates, queryBuilds.statements, decoded)
+    .resolve(queryBuilds.statementParams)
+    .then(data => {
+      const cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
+        return !_.startsWith(c, '#-2');
+      });
+      return cache;
     });
-    return cache;
-  });
 }
 
 export function flattenExtend(extend) {

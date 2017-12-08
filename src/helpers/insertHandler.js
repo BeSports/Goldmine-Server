@@ -5,13 +5,11 @@ import {
   extractParams,
   extractRid,
   emitResults,
-  getCollectionName,
+  getParameteredIdsOfTemplate,
   flattenExtend,
 } from './helperFunctions';
 import OperationTypes from '../enums/OperationTypes';
-const {
-  performance
-} = require('perf_hooks');
+const { performance } = require('perf_hooks');
 const deepDifference = require('deep-diff');
 /**
  * Handles inserts from the live queries.
@@ -112,6 +110,11 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
       room.cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
         return !_.startsWith(c, '#-2');
       });
+      if (_.size(room.cache) === 0) {
+        getParameteredIdsOfTemplate(room.templates, room.params, {}, true).then(value => {
+          room.cache = value;
+        });
+      }
       emitResults(io, roomHash, room, 'change', differences);
     }
   });

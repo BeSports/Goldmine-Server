@@ -4,7 +4,11 @@ import Express from 'express';
 import Server from 'socket.io';
 import liveQueryHandler from './helpers/liveQueryHandler';
 import insertHandler from './helpers/insertHandler';
-import { extractPublicationName, extractParams, getParameteredIdsOfTemplate } from './helpers/helperFunctions';
+import {
+  extractPublicationName,
+  extractParams,
+  getParameteredIdsOfTemplate,
+} from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
@@ -100,8 +104,8 @@ const startQuerries = function(Config, publications) {
               (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${global.counter
         .roomsRemovedByDeepCompare})
             ${global.counter.roomsRemovedByNonMatchingRids /
-              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${global.counter
-        .roomsRemovedByNonMatchingRids})`);
+              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${global
+        .counter.roomsRemovedByNonMatchingRids})`);
 
       global.counter.dbCalls = 0;
       global.counter.skippedByObjectCache = 0;
@@ -312,9 +316,6 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
-          if(_.size(cache) === 0) {
-            io.sockets.adapter.rooms[hash(room)].cache = getParameteredIdsOfTemplate(templates, params, socket.decoded);
-          }
           io.sockets.adapter.rooms[hash(room)].hash = hash(room);
           io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
@@ -328,6 +329,11 @@ const startQuerries = function(Config, publications) {
             leading: false,
             trailing: true,
           });
+          if (_.size(cache) === 0) {
+            getParameteredIdsOfTemplate(templates, params, socket.decoded).then(value => {
+              io.sockets.adapter.rooms[hash(room)].cache = value;
+            });
+          }
         }
       });
     });
