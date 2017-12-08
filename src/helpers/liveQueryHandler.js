@@ -40,15 +40,18 @@ const doCache = (o, cluster, position) => {
   return true;
 };
 
-const searchForMatchingRids = (rooms, insertedObject) => {
-  if (_.includes(insertedObject['@class'], '_')) {
-    const edgeRelatedIds = [extractRid(insertedObject.in), extractRid(insertedObject.out)];
+const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
+  if (_.includes(insertedObject.content['@class'], '_')) {
+    const edgeRelatedIds = [
+      extractRid(insertedObject.content.in),
+      extractRid(insertedObject.content.out),
+    ];
     const valuesToSearchForInParams = _.flatten([
       _.values(
         _.omit(
           _.get(
             global.objectCache,
-            `[${insertedObject.in.cluster}][${insertedObject.in.position}]`,
+            `[${insertedObject.content.in.cluster}][${insertedObject.content.in.position}]`,
             {},
           ),
           '@class',
@@ -58,7 +61,7 @@ const searchForMatchingRids = (rooms, insertedObject) => {
         _.omit(
           _.get(
             global.objectCache,
-            `[${insertedObject.out.cluster}][${insertedObject.out.position}]`,
+            `[${insertedObject.content.out.cluster}][${insertedObject.content.out.position}]`,
             {},
           ),
           '@class',
@@ -77,6 +80,11 @@ const searchForMatchingRids = (rooms, insertedObject) => {
           }),
         ) > 0
       );
+    });
+  } else if (isUpdate) {
+    const ridToSearchFor = extractRid(insertedObject);
+    return _.filter(rooms, room => {
+      return _.includes(room.cache, ridToSearchFor);
     });
   }
 
@@ -142,7 +150,7 @@ export default async function(io, db, collectionType, shouldLog) {
       }
 
       const totalRooms = _.size(io.sockets.adapter.rooms);
-      const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res.content);
+      const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res);
       const roomsRemovedByNonMatchingRids = totalRooms - _.size(roomsWithMatchingRids);
 
       // inserted an edge
@@ -180,14 +188,16 @@ export default async function(io, db, collectionType, shouldLog) {
       }
 
       const totalRooms = _.size(io.sockets.adapter.rooms);
-      // inserted an edge
+      const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res, true);
+
+      const roomsRemovedByMatchingRids = totalRooms - _.size(roomsRemovedByMatchingRids);
       let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
-        io.sockets.adapter.rooms,
+        roomsWithMatchingRids,
         collectionType.name,
         _.includes(res.content['@class'], '_'),
       );
 
-      const roomsRemovedByShallowCompare = totalRooms - _.size(roomsWithShallowTemplatesForInsert);
+      const roomsRemovedByShallowCompare = totalRooms - roomsRemovedByMatchingRids - _.size(roomsWithShallowTemplatesForInsert);
 
       let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
         roomsWithShallowTemplatesForInsert,
@@ -197,7 +207,7 @@ export default async function(io, db, collectionType, shouldLog) {
       );
 
       const roomsRemovedByDeepCompare =
-        totalRooms - roomsRemovedByShallowCompare - _.size(roomsWithDeepTemplatesForInsert);
+        totalRooms - roomsRemovedByShallowCompare - roomsRemovedByMatchingRids -_.size(roomsWithDeepTemplatesForInsert);
 
       global.counter.totalRoomsChecked += totalRooms;
       global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;
