@@ -69,7 +69,13 @@ const searchForMatchingRids = (rooms, insertedObject) => {
     return _.filter(rooms, room => {
       return (
         _.difference(edgeRelatedIds, room.cache).length < 2 ||
-        _.size(_.difference(_.values(room.params), valuesToSearchForInParams)) < _.size(room.params)
+        _.size(_.difference(_.values(room.params), valuesToSearchForInParams)) <
+          _.size(room.params) ||
+        _.size(
+          _.filter(room.templates, template => {
+            return _.has(template, 'limit') && _.has(template, 'orderBy');
+          }),
+        ) > 0
       );
     });
   }
@@ -91,7 +97,6 @@ const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
 };
 
 const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => {
-
   const oldObject = _.get(global.objectCache, `[${res.cluster}][${res.position}]`, {});
   const toReturn = _.compact(
     _.map(rooms, (value, key) => {
@@ -126,7 +131,6 @@ export default async function(io, db, collectionType, shouldLog) {
       },
     })
     .on('live-insert', res => {
-
       global.counter.updates++;
 
       if (!doCache(omitter(res), res.cluster, res.position)) {

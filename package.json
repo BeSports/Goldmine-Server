@@ -1,6 +1,6 @@
 {
   "name": "goldmine-server",
-  "version": "0.13.0",
+  "version": "0.13.2",
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
   "scripts": {

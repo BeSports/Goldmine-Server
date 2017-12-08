@@ -1,6 +1,8 @@
 import _ from 'lodash';
 import Orient from 'orientjs';
 import pluralize from 'pluralize';
+import QueryBuilder from '../builders/OrientDbQueryBuilder';
+import QueryResolver from '../resolvers/OrientDbQueryResolver';
 
 export function extractRid(obj) {
   return '#' + obj.cluster + ':' + obj.position;
@@ -89,9 +91,21 @@ export function getCollectionName(template) {
   return template.collectionName ? template.collectionName : pluralize(template.collection);
 }
 
-export function serverParamsUsed(publication, decoded) {
-  //TODO
-  return;
+export function getParameteredIdsOfTemplate(templates, params, decoded) {
+  const miniTemplates = flattenExtend([templates]);
+  const parameteredTemplates = _.filter(miniTemplates, template => {
+    return _.has(template, 'params');
+  });
+  const reconstructedTemplates = _.map(parameteredTemplates, template => {
+    return _.set(_.omit(template, ['relation', 'target', 'fields']), 'fields', ['@rid']);
+  });
+  const queryBuilds = new QueryBuilder(reconstructedTemplates, params, decoded).build();
+  new QueryResolver({}, queryBuilds.templates, queryBuilds.statements, decoded).resolve(queryBuilds.statementParams).then(data => {
+    const cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
+      return !_.startsWith(c, '#-2');
+    });
+    return cache;
+  });
 }
 
 export function flattenExtend(extend) {

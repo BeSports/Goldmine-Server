@@ -4,7 +4,7 @@ import Express from 'express';
 import Server from 'socket.io';
 import liveQueryHandler from './helpers/liveQueryHandler';
 import insertHandler from './helpers/insertHandler';
-import { extractPublicationName, extractParams, serverParamsUsed } from './helpers/helperFunctions';
+import { extractPublicationName, extractParams, getParameteredIdsOfTemplate } from './helpers/helperFunctions';
 import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
@@ -312,6 +312,9 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
           io.sockets.adapter.rooms[hash(room)].cache = cache;
+          if(_.size(cache) === 0) {
+            io.sockets.adapter.rooms[hash(room)].cache = getParameteredIdsOfTemplate(templates, params, socket.decoded);
+          }
           io.sockets.adapter.rooms[hash(room)].hash = hash(room);
           io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
           io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
