@@ -13,6 +13,7 @@ import Types from './enums/OperationTypes';
 import QueryBuilder from './builders/OrientDbQueryBuilder';
 import QueryResolver from './resolvers/OrientDbQueryResolver';
 import hash from 'object-hash';
+
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server);
