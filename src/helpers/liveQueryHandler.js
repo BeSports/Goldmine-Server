@@ -112,7 +112,7 @@ const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => 
         collectionName,
       ]);
       const relevantFields = _.uniq(
-        _.flatten(_.compact(_.map(relevantFlattendTemplateParts, 'fields'))),
+        _.flatten(_.compact(_.map(relevantFlattendTemplateParts, isEdgeCheck ? 'edgeFields' : 'fields'))),
       );
       const oldObjectRelevantFields = _.pick(oldObject, relevantFields);
       const newObjectRelevantFields = _.pick(omitter(res), relevantFields);
