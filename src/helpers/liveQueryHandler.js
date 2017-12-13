@@ -112,7 +112,9 @@ const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => 
         collectionName,
       ]);
       const relevantFields = _.uniq(
-        _.flatten(_.compact(_.map(relevantFlattendTemplateParts, isEdgeCheck ? 'edgeFields' : 'fields'))),
+        _.flatten(
+          _.compact(_.map(relevantFlattendTemplateParts, isEdgeCheck ? 'edgeFields' : 'fields')),
+        ),
       );
       const oldObjectRelevantFields = _.pick(oldObject, relevantFields);
       const newObjectRelevantFields = _.pick(omitter(res), relevantFields);
@@ -127,8 +129,8 @@ const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => 
   return toReturn;
 };
 
-export default async function(io, db, collectionType, shouldLog) {
-  const QUERY = `LIVE SELECT FROM \`${collectionType.name}\``;
+export default async function(io, db, typer, shouldLog) {
+  const QUERY = `LIVE SELECT FROM \`${typer}\``;
   global
     .nextDB()
     .liveQuery(QUERY, {
@@ -155,7 +157,7 @@ export default async function(io, db, collectionType, shouldLog) {
       // inserted an edge
       let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
         roomsWithMatchingRids,
-        collectionType.name,
+        res.content['@class'],
         _.includes(res.content['@class'], '_'),
       );
       const roomsRemovedByShallowCompare =
@@ -172,7 +174,7 @@ export default async function(io, db, collectionType, shouldLog) {
         _.size(roomsWithShallowTemplatesForInsert),
       );
       _.forEach(roomsWithShallowTemplatesForInsert, room => {
-        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name);
+        room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
     })
     .on('live-update', res => {
@@ -192,7 +194,7 @@ export default async function(io, db, collectionType, shouldLog) {
       const roomsRemovedByMatchingRids = totalRooms - _.size(roomsRemovedByMatchingRids);
       let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
         roomsWithMatchingRids,
-        collectionType.name,
+        res.content['@class'],
         _.includes(res.content['@class'], '_'),
       );
 
@@ -201,7 +203,7 @@ export default async function(io, db, collectionType, shouldLog) {
 
       let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
         roomsWithShallowTemplatesForInsert,
-        collectionType.name,
+        res.content['@class'],
         _.includes(res.content['@class'], '_'),
         res,
       );
@@ -223,21 +225,18 @@ export default async function(io, db, collectionType, shouldLog) {
         _.size(roomsWithDeepTemplatesForInsert),
       );
       _.forEach(roomsWithDeepTemplatesForInsert, room => {
-        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name, rid);
+        room.room.executeQuery(io, db, room.room, room.hash, res.content['@class'], rid);
       });
     })
     .on('live-delete', res => {
       global.updates++;
       const rid = extractRid(res);
-      if (shouldLog) {
-        console.log(`DELETE DETECTED (${collectionType.name})(${rid})`);
-      }
       let roomsWithTemplatesForInsert = _.filter(
         _.map(io.sockets.adapter.rooms, (value, key) => {
           0;
           return _.find(flattenExtend(value.templates), [
             _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
-            collectionType.name,
+            res.content['@class'],
           ])
             ? { room: value, hash: key }
             : null;
@@ -247,7 +246,7 @@ export default async function(io, db, collectionType, shouldLog) {
         },
       );
       _.forEach(roomsWithTemplatesForInsert, room => {
-        room.room.executeQuery(io, db, room.room, room.hash, collectionType.name);
+        room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
     });
 }

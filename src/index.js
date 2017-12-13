@@ -136,28 +136,32 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  global
-    .nextDB()
-    .query('SELECT expand(classes) FROM metadata:schema')
-    .then(res => {
-      // For each defined class create a livequery
-      _.forEach(res, obj => {
-        // Only classes that were defined by yourself
-        if (obj.superClass === 'V') {
-          collectionTypes.push({
-            name: obj.name,
-            type: Types.VERTEX,
-          });
-          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-        } else if (obj.superClass === 'E') {
-          collectionTypes.push({
-            name: obj.name,
-            type: Types.EDGE,
-          });
-          liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
-        }
-      });
-    });
+  liveQueryHandler(io, db, 'V', _.get(Config, 'logging.updates', false));
+  liveQueryHandler(io, db, 'E', _.get(Config, 'logging.updates', false));
+
+
+  // global
+  //   .nextDB()
+  //   .query('SELECT expand(classes) FROM metadata:schema')
+  //   .then(res => {
+  //     // For each defined class create a livequery
+  //     _.forEach(res, obj => {
+  //       // Only classes that were defined by yourself
+  //       if (obj.superClass === 'V') {
+  //         collectionTypes.push({
+  //           name: obj.name,
+  //           type: Types.VERTEX,
+  //         });
+  //         liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+  //       } else if (obj.superClass === 'E') {
+  //         collectionTypes.push({
+  //           name: obj.name,
+  //           type: Types.EDGE,
+  //         });
+  //         liveQueryHandler(io, db, obj, _.get(Config, 'logging.updates', false));
+  //       }
+  //     });
+  //   });
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
