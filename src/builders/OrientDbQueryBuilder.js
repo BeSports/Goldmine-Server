@@ -72,9 +72,9 @@ export default class OrientDBQueryBuilder {
           ${/* insert the where clauses built before */ ''}
           ${_.join(
             _.map(whereStmts, (whereStmt, i) => {
-              return `let $${i + 1} = ${whereStmt} ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt
-                ? paginationStmt
-                : ''}`;
+              return `let $${i + 1} = ${whereStmt} ${orderByStmt
+                ? 'ORDER BY ' + orderByStmt
+                : ''} ${paginationStmt ? paginationStmt : ''}`;
             }),
             ' ;',
           )}
@@ -283,17 +283,30 @@ export default class OrientDBQueryBuilder {
         propertyObject.value,
         propertyObject.operator,
         edge,
+        propertyObject.method,
       );
     } else if (propertyObject.value !== undefined) {
-      return this.buildPropertyValuePair(propertyName, propertyObject.value, '=', edge);
+      return this.buildPropertyValuePair(
+        propertyName,
+        propertyObject.value,
+        '=',
+        edge,
+        propertyObject.method,
+      );
     } else if (propertyObject.operator !== undefined) {
-      return this.buildPropertyValuePair(propertyName, null, propertyObject.operator, edge);
+      return this.buildPropertyValuePair(
+        propertyName,
+        null,
+        propertyObject.operator,
+        edge,
+        propertyObject.method,
+      );
     }
     return '';
   }
 
   // preset goldmine since number are not recognized as params by orientjs
-  buildPropertyValuePair(property, value, operator, edge) {
+  buildPropertyValuePair(property, value, operator, edge, method) {
     const tempParamIndex = this.setNextParamAvailable(value);
     if (value === null) {
       if (edge) {
@@ -302,9 +315,10 @@ export default class OrientDBQueryBuilder {
       return ` \`${property}\` ${operator}`;
     }
     if (edge) {
-      return ` ${edge}["${property}"] ${operator || '='} :goldmine${tempParamIndex}`;
+      return ` ${edge}["${property}"]${method ? `.${method}` : ''} ${operator || '='} :goldmine${tempParamIndex}`;
     }
-    return ` \`${property}\` ${operator || '='} :goldmine${tempParamIndex}`;
+    return ` \`${property}\`${method ? `.${method}` : ''} ${operator || '='} :goldmine${tempParamIndex}`;
+
   }
 
   buildOrderByStmt(template) {
