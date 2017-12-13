@@ -21,22 +21,7 @@ const deepDifference = require('deep-diff');
  */
 export default function insertHandler(io, db, room, roomHash, collectionName) {
   const t0 = performance.now();
-  let filteredRoomQueries = [];
-  let filteredRoomTemplates = [];
-  let filteredIndexes = [];
-  _.map(room.templates, (template, i) => {
-    if (
-      _.find(flattenExtend([template]), [
-        _.includes(collectionName, '_') ? 'relation' : 'collection',
-        collectionName,
-      ])
-    ) {
-      filteredRoomQueries.push(room.queries[i]);
-      filteredRoomTemplates.push(room.templates[i]);
-      filteredIndexes.push(i);
-    }
-  });
-  const resolver = new Resolver(db, filteredRoomTemplates, filteredRoomQueries, {}, true);
+  const resolver = new Resolver(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
     const t1 = performance.now();
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
@@ -53,7 +38,7 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
         }),
       };
     });
-    const serverCache = _.at(room.serverCache, filteredIndexes);
+    const serverCache = room.serverCache;
 
     const differences = _.filter(
       _.map(convertedData, (cv, i) => {
@@ -104,9 +89,7 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
 
     if (differences !== undefined && _.size(differences) > 0) {
       // new serverCache
-      _.forEach(filteredIndexes, (setAtIndex, fromIndex) => {
-        room.serverCache[setAtIndex] = convertedData[fromIndex];
-      });
+      room.serverCache = convertedData;
       room.cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
         return !_.startsWith(c, '#-2');
       });
