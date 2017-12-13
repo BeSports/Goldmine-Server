@@ -36,7 +36,6 @@
     }
   ],
   "dependencies": {
-    "babel": "^6.23.0",
     "connect-datadog": "0.0.6",
     "cors": "^2.8.4",
     "deep-diff": "^0.3.8",
