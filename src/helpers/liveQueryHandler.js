@@ -75,7 +75,11 @@ const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
           _.size(room.params) ||
         _.size(
           _.filter(room.templates, template => {
-            return _.has(template, 'limit') && _.has(template, 'orderBy');
+            return (
+              _.has(template, 'limit') &&
+              _.has(template, 'orderBy') &&
+              !_.has(template, 'skipOrder')
+            );
           }),
         ) > 0
       );

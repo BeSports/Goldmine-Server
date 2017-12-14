@@ -81,7 +81,7 @@ const startQuerries = function(Config, publications) {
             ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${global
         .counter.updates})
             ${global.counter.skippedByObjectCache /
-              (Config.logging.repeat / 1000)} skippedByObejctCache/s (total: ${global.counter
+              (Config.logging.repeat / 1000)} skippedByObjectCache/s (total: ${global.counter
         .skippedByObjectCache})
             ${global.counter.newlyInsertedInChache /
               (Config.logging.repeat / 1000)} insertedInChache/s (total: ${global.counter
