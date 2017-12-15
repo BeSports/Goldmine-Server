@@ -35,6 +35,7 @@ global.counter = {
   roomsRemovedByShallowCompare: 0,
   roomsRemovedByDeepCompare: 0,
   roomsRemovedByNonMatchingRids: 0,
+  callTimes: [],
 };
 
 /**
@@ -80,6 +81,8 @@ const startQuerries = function(Config, publications) {
         .counter.dbCalls})
             ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${global
         .counter.updates})
+            ${_.sum(global.counter.callTimes) /
+              _.size(global.counter.callTimes)} ms average time per call
             ${global.counter.skippedByObjectCache /
               (Config.logging.repeat / 1000)} skippedByObjectCache/s (total: ${global.counter
         .skippedByObjectCache})
@@ -119,6 +122,7 @@ const startQuerries = function(Config, publications) {
       global.counter.roomsRemovedByShallowCompare = 0;
       global.counter.roomsRemovedByDeepCompare = 0;
       global.counter.roomsRemovedByNonMatchingRids = 0;
+      global.counter.callTimes = [];
     }, Config.logging.repeat);
   }
 
@@ -138,7 +142,6 @@ const startQuerries = function(Config, publications) {
   // Start livequeries for all classes
   liveQueryHandler(io, db, 'V', _.get(Config, 'logging.updates', false));
   liveQueryHandler(io, db, 'E', _.get(Config, 'logging.updates', false));
-
 
   // global
   //   .nextDB()
