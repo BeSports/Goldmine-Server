@@ -35,7 +35,6 @@ global.counter = {
   roomsRemovedByShallowCompare: 0,
   roomsRemovedByDeepCompare: 0,
   roomsRemovedByNonMatchingRids: 0,
-  callTimes: [],
 };
 
 /**
@@ -77,39 +76,48 @@ const startQuerries = function(Config, publications) {
         Sockets: ${_.size(io.sockets.sockets)}
         MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB
         Speed: 
-            ${global.counter.dbCalls / (Config.logging.repeat / 1000)} dbCalls/s (total: ${global
-        .counter.dbCalls})
-            ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${global
-        .counter.updates})
-            ${_.sum(global.counter.callTimes) /
-              _.size(global.counter.callTimes)} ms average time per call
+            ${global.counter.dbCalls / (Config.logging.repeat / 1000)} dbCalls/s (total: ${
+        global.counter.dbCalls
+      })
+            ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${
+        global.counter.updates
+      })
             ${global.counter.skippedByObjectCache /
-              (Config.logging.repeat / 1000)} skippedByObjectCache/s (total: ${global.counter
-        .skippedByObjectCache})
+              (Config.logging.repeat / 1000)} skippedByObjectCache/s (total: ${
+        global.counter.skippedByObjectCache
+      })
             ${global.counter.newlyInsertedInChache /
-              (Config.logging.repeat / 1000)} insertedInChache/s (total: ${global.counter
-        .newlyInsertedInChache})
+              (Config.logging.repeat / 1000)} insertedInChache/s (total: ${
+        global.counter.newlyInsertedInChache
+      })
             ${global.counter.insertedFromInit /
-              (Config.logging.repeat / 1000)} insertedFromInitIntoCache/s (total: ${global.counter
-        .insertedFromInit})
+              (Config.logging.repeat / 1000)} insertedFromInitIntoCache/s (total: ${
+        global.counter.insertedFromInit
+      })
             ${global.counter.shallowCompareRooms /
-              (Config.logging.repeat / 1000)} shallowCompareRooms/s (total: ${global.counter
-        .shallowCompareRooms})
+              (Config.logging.repeat / 1000)} shallowCompareRooms/s (total: ${
+        global.counter.shallowCompareRooms
+      })
             ${global.counter.serverCacheUsed /
-              (Config.logging.repeat / 1000)} serverCacheUsed/s (total: ${global.counter
-        .serverCacheUsed})
+              (Config.logging.repeat / 1000)} serverCacheUsed/s (total: ${
+        global.counter.serverCacheUsed
+      })
             ${global.counter.totalRoomsChecked /
-              (Config.logging.repeat / 1000)} totalRoomsChecked/s (total: ${global.counter
-        .totalRoomsChecked})
+              (Config.logging.repeat / 1000)} totalRoomsChecked/s (total: ${
+        global.counter.totalRoomsChecked
+      })
             ${global.counter.roomsRemovedByShallowCompare /
-              (Config.logging.repeat / 1000)} roomsRemovedByShallowCompare/s (total: ${global
-        .counter.roomsRemovedByShallowCompare})
+              (Config.logging.repeat / 1000)} roomsRemovedByShallowCompare/s (total: ${
+        global.counter.roomsRemovedByShallowCompare
+      })
             ${global.counter.roomsRemovedByDeepCompare /
-              (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${global.counter
-        .roomsRemovedByDeepCompare})
+              (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${
+        global.counter.roomsRemovedByDeepCompare
+      })
             ${global.counter.roomsRemovedByNonMatchingRids /
-              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${global
-        .counter.roomsRemovedByNonMatchingRids})`);
+              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${
+        global.counter.roomsRemovedByNonMatchingRids
+      })`);
 
       global.counter.dbCalls = 0;
       global.counter.skippedByObjectCache = 0;
@@ -122,7 +130,6 @@ const startQuerries = function(Config, publications) {
       global.counter.roomsRemovedByShallowCompare = 0;
       global.counter.roomsRemovedByDeepCompare = 0;
       global.counter.roomsRemovedByNonMatchingRids = 0;
-      global.counter.callTimes = [];
     }, Config.logging.repeat);
   }
 

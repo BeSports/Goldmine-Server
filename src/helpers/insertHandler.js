@@ -24,8 +24,6 @@ export default function insertHandler(io, db, room, roomHash, collectionName) {
   const resolver = new Resolver(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
     const t1 = performance.now();
-    console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
-    global.counter.callTimes.push(t1 - t0);
     const convertedData = _.map(data, d => {
       return {
         collectionName: d.collectionName,
