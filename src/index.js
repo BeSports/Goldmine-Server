@@ -263,6 +263,7 @@ const startQuerries = function(Config, publications) {
         socket.emit(payload.publicationNameWithParams, {
           type: Types.INIT,
           data: io.sockets.adapter.rooms[hash(room)].serverCache,
+          publicationNameWithParams,
         });
 
         if (payload.isReactive) {
@@ -277,6 +278,12 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
         }
+        io.sockets.adapter.rooms[hash(room)].executeQuery(
+          io,
+          db,
+          io.sockets.adapter.rooms[hash(room)],
+          hash(room),
+        );
         return;
       }
 

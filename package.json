@@ -1,6 +1,6 @@
 {
   "name": "goldmine-server",
-  "version": "0.14.4",
+  "version": "0.14.5",
   "description": "A framework for building reactive web apps.",
   "main": "./build/index.js",
   "scripts": {
@@ -11,13 +11,7 @@
   "bugs": {
     "url": "https://github.com/BeSports/Goldmine-Server/issues"
   },
-  "keywords": [
-    "goldmine",
-    "reactive",
-    "realtime",
-    "OrientDB",
-    "server"
-  ],
+  "keywords": ["goldmine", "reactive", "realtime", "OrientDB", "server"],
   "license": "LGPL-3.0",
   "contributors": [
     {
