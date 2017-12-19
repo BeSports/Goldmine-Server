@@ -60,10 +60,11 @@ export default class OrientDBQueryBuilder {
         // EXTENDS
         if (template.extend) {
           const extendFields = this.buildExtends(template.extend, '');
-          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
-          _.size(_.trim(extendFields.selectStmt)) !== 0
-            ? ', '
-            : ' '} ${extendFields.selectStmt}`;
+          selectStmt += `${
+            _.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(extendFields.selectStmt)) !== 0
+              ? ', '
+              : ' '
+          } ${extendFields.selectStmt}`;
         }
 
         // Add statement
@@ -72,27 +73,27 @@ export default class OrientDBQueryBuilder {
           ${/* insert the where clauses built before */ ''}
           ${_.join(
             _.map(whereStmts, (whereStmt, i) => {
-              return `let $${i + 1} = ${whereStmt} ${orderByStmt
-                ? 'ORDER BY ' + orderByStmt
-                : ''} ${paginationStmt ? paginationStmt : ''}`;
+              return `let $${i + 1} = ${whereStmt} ${
+                orderByStmt ? 'ORDER BY ' + orderByStmt : ''
+              } ${paginationStmt ? paginationStmt : ''}`;
             }),
             ' ;',
           )}
           ${/* get all rids where the where clauses are correct */ ''}
-          ${_.size(whereStmts) === 1
-            ? ''
-            : `let $inter = select intersect(${_.join(
-                _.times(_.size(whereStmts), i => {
-                  return `$${i + 1}`;
-                }),
-                ', ',
-              )})`}
+          ${
+            _.size(whereStmts) === 1
+              ? ''
+              : `let $inter = select intersect(${_.join(
+                  _.times(_.size(whereStmts), i => {
+                    return `$${i + 1}`;
+                  }),
+                  ', ',
+                )})`
+          }
           ${/* Select the requested fields */ ''}
-          let $result = select ${selectStmt} from ${_.size(whereStmts) > 1
-          ? '$inter.intersect'
-          : '$1'} ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt
-          ? paginationStmt
-          : ''};
+          let $result = select ${selectStmt} from ${
+          _.size(whereStmts) > 1 ? '$inter.intersect' : '$1'
+        } ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt ? paginationStmt : ''};
           commit
           return $result
           `;
@@ -138,19 +139,21 @@ export default class OrientDBQueryBuilder {
       ownParams = this.buildObject(template.params, '');
     }
     if (template.relation) {
-      relationString = `expand(both('${template.relation}')) `;
+      relationString = `expand(${
+        template.direction ? this.buildDirection(template.direction) : 'both'
+      }('${template.relation}')) `;
     }
     if (_.size(optionalPaths) > 0) {
       return _.map(optionalPaths, path => {
-        return `select ${relationString !== ''
-          ? relationString
-          : ''} from ( ${path} ) ${ownParams !== '' ? 'WHERE' + ownParams : ''}`;
+        return `select ${relationString !== '' ? relationString : ''} from ( ${path} ) ${
+          ownParams !== '' ? 'WHERE' + ownParams : ''
+        }`;
       });
     } else if (ownParams !== '' || !template.relation) {
       return [
-        `select ${relationString !== ''
-          ? relationString
-          : ''}  from \`${template.collection}\` ${ownParams !== '' ? 'WHERE' + ownParams : ''}`,
+        `select ${relationString !== '' ? relationString : ''}  from \`${template.collection}\` ${
+          ownParams !== '' ? 'WHERE' + ownParams : ''
+        }`,
       ];
     }
     return null;
@@ -163,21 +166,24 @@ export default class OrientDBQueryBuilder {
       if (e instanceof Array) {
         _.map(e, ext => {
           const extendFields = this.buildExtends([ext], parent, true);
-          selectStmt += `${extendFields.selectStmt
-            ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}`
-            : ''} `;
+          selectStmt += `${
+            extendFields.selectStmt
+              ? ` ${_.size(_.trim(selectStmt)) > 0 ? ', ' : ''} ${extendFields.selectStmt}`
+              : ''
+          } `;
         });
       } else {
         const buildSelect = this.buildSelectStmt(e, parent);
-        selectStmt += `${_.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0
-          ? ', '
-          : ''}${buildSelect}`;
+        selectStmt += `${
+          _.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(buildSelect)) !== 0 ? ', ' : ''
+        }${buildSelect}`;
         if (e.extend) {
           const extendFields = this.buildExtends(e.extend, parent + `both("${e.relation}").`);
-          selectStmt += `${_.size(_.trim(selectStmt)) !== 0 &&
-          _.size(_.trim(extendFields.selectStmt)) !== 0
-            ? ', '
-            : ''}${extendFields.selectStmt}`;
+          selectStmt += `${
+            _.size(_.trim(selectStmt)) !== 0 && _.size(_.trim(extendFields.selectStmt)) !== 0
+              ? ', '
+              : ''
+          }${extendFields.selectStmt}`;
         }
       }
     });
@@ -219,13 +225,9 @@ export default class OrientDBQueryBuilder {
       }
       if (template.edgeFields) {
         _.forEach(template.edgeFields, field => {
-          res += `${template.fields === null
-            ? ''
-            : ', '} ${parent}bothE(\'${template.relation}\').${field} AS \`${_.replace(
-            template.target,
-            '.',
-            '§',
-          )}§${field}\``;
+          res += `${template.fields === null ? '' : ', '} ${parent}bothE(\'${
+            template.relation
+          }\').${field} AS \`${_.replace(template.target, '.', '§')}§${field}\``;
         });
       }
       // main class subscribed on
@@ -315,10 +317,11 @@ export default class OrientDBQueryBuilder {
       return ` \`${property}\` ${operator}`;
     }
     if (edge) {
-      return ` ${edge}["${property}"]${method ? `.${method}` : ''} ${operator || '='} :goldmine${tempParamIndex}`;
+      return ` ${edge}["${property}"]${method ? `.${method}` : ''} ${operator ||
+        '='} :goldmine${tempParamIndex}`;
     }
-    return ` \`${property}\`${method ? `.${method}` : ''} ${operator || '='} :goldmine${tempParamIndex}`;
-
+    return ` \`${property}\`${method ? `.${method}` : ''} ${operator ||
+      '='} :goldmine${tempParamIndex}`;
   }
 
   buildOrderByStmt(template) {
