@@ -2,8 +2,8 @@ import _ from 'lodash';
 import pluralize from 'pluralize';
 import { flattenExtend, getCollectionName, extractRid } from '../helpers/helperFunctions';
 
-const setCache = (object) => {
-  if(!_.has(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`)) {
+const setCache = object => {
+  if (!_.has(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`)) {
     global.counter.insertedFromInit++;
     _.set(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`, object);
   }
@@ -32,6 +32,7 @@ export default class OrientDBQueryResolver {
     let promises = [];
 
     _.forEach(this.queries, query => {
+      console.log(query);
       promises.push(global.nextDB().query(query, { class: 's' }));
     });
 

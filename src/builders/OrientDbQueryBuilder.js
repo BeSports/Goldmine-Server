@@ -140,7 +140,7 @@ export default class OrientDBQueryBuilder {
     }
     if (template.relation) {
       relationString = `expand(${
-        template.direction ? this.buildDirection(template.direction) : 'both'
+        template.direction ? this.buildWhereDirection(template.direction) : 'both'
       }('${template.relation}')) `;
     }
     if (_.size(optionalPaths) > 0) {
@@ -374,6 +374,10 @@ export default class OrientDBQueryBuilder {
 
   buildDirection(direction) {
     return direction ? (_.toLower(direction) === 'in' ? 'out' : 'in') : 'both';
+  }
+
+  buildWhereDirection(direction) {
+    return direction ? (_.toLower(direction) === 'in' ? 'in' : 'out') : 'both';
   }
 
   buildEdge(relation, direction, isEdge = false) {
