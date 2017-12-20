@@ -32,7 +32,6 @@ export default class OrientDBQueryResolver {
     let promises = [];
 
     _.forEach(this.queries, query => {
-      console.log(query);
       promises.push(global.nextDB().query(query, { class: 's' }));
     });
 
