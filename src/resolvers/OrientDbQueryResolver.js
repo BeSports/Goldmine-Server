@@ -4,7 +4,6 @@ import { flattenExtend, getCollectionName, extractRid } from '../helpers/helperF
 
 const setCache = object => {
   if (!_.has(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`)) {
-    global.counter.insertedFromInit++;
     _.set(global.objectCache, `[${object.rid.cluster}][${object.rid.position}]`, object);
   }
 };

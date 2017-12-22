@@ -7,7 +7,6 @@ let dbNext = 0;
 let dbLiveNext = 0;
 let dbMax = 25;
 let dbLiveMax = 2;
-global.counter.dbCalls = 0;
 
 global.nextDB = () => {
   dbNext++;

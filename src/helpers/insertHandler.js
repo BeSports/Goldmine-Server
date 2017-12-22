@@ -23,6 +23,11 @@ export default function insertHandler(io, db, room, roomHash) {
   const t0 = performance.now();
   const resolver = new Resolver(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
+    _.set(
+      global,
+      `counter.publications.${room.publicationName}.counter`,
+      _.get(global, `counter.publications.${room.publicationName}.counter`, 0) + 1,
+    );
     const t1 = performance.now();
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
@@ -93,6 +98,7 @@ export default function insertHandler(io, db, room, roomHash) {
       room.cache = _.filter(_.uniq(_.flatten(_.map(data, 'cache'))), c => {
         return !_.startsWith(c, '#-2');
       });
+
       if (_.size(room.cache) === 0) {
         getParameteredIdsOfTemplate(room.templates, room.params, {}, true).then(value => {
           room.cache = value;

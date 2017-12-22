@@ -23,18 +23,11 @@ global.updates = 0;
 global.liveQueryTokens = [];
 global.objectCache = {};
 global.counter = {
-  emptyUpdate: 0,
   dbCalls: 0,
-  skippedByObjectCache: 0,
-  newlyInsertedInChache: 0,
   updates: 0,
-  shallowCompareRooms: 0,
-  serverCacheUsed: 0,
-  insertedFromInit: 0,
-  totalRoomsChecked: 0,
-  roomsRemovedByShallowCompare: 0,
-  roomsRemovedByDeepCompare: 0,
-  roomsRemovedByNonMatchingRids: 0,
+  rooms: 0,
+  clients: 0,
+  publications: {},
 };
 
 /**
@@ -71,65 +64,27 @@ const startQuerries = function(Config, publications) {
 
   if (Config.logging.statistics === true && typeof Config.logging.repeat === 'number') {
     setInterval(() => {
-      console.log(`${new Date().toLocaleString()}
-        Rooms: ${_.size(_.keys(io.sockets.adapter.rooms))}
-        Sockets: ${_.size(io.sockets.sockets)}
+      global.counter.rooms = _.size(_.keys(io.sockets.adapter.rooms));
+      global.counter.sockets = _.size(io.sockets.sockets);
+      if (Config.logging.custom) {
+        Config.logging.custom(global.counter);
+      } else {
+        console.log(`${new Date().toLocaleString()}
+        Rooms: ${global.counter.rooms}
+        Sockets: ${global.counter.sockets}
         MemoryTotal: ${(process.memoryUsage().rss / (1024 * 1024)).toFixed(2)}MB
         Speed: 
             ${global.counter.dbCalls / (Config.logging.repeat / 1000)} dbCalls/s (total: ${
-        global.counter.dbCalls
-      })
+          global.counter.dbCalls
+        })
             ${global.counter.updates / (Config.logging.repeat / 1000)} updates/s (total: ${
-        global.counter.updates
-      })
-            ${global.counter.skippedByObjectCache /
-              (Config.logging.repeat / 1000)} skippedByObjectCache/s (total: ${
-        global.counter.skippedByObjectCache
-      })
-            ${global.counter.newlyInsertedInChache /
-              (Config.logging.repeat / 1000)} insertedInChache/s (total: ${
-        global.counter.newlyInsertedInChache
-      })
-            ${global.counter.insertedFromInit /
-              (Config.logging.repeat / 1000)} insertedFromInitIntoCache/s (total: ${
-        global.counter.insertedFromInit
-      })
-            ${global.counter.shallowCompareRooms /
-              (Config.logging.repeat / 1000)} shallowCompareRooms/s (total: ${
-        global.counter.shallowCompareRooms
-      })
-            ${global.counter.serverCacheUsed /
-              (Config.logging.repeat / 1000)} serverCacheUsed/s (total: ${
-        global.counter.serverCacheUsed
-      })
-            ${global.counter.totalRoomsChecked /
-              (Config.logging.repeat / 1000)} totalRoomsChecked/s (total: ${
-        global.counter.totalRoomsChecked
-      })
-            ${global.counter.roomsRemovedByShallowCompare /
-              (Config.logging.repeat / 1000)} roomsRemovedByShallowCompare/s (total: ${
-        global.counter.roomsRemovedByShallowCompare
-      })
-            ${global.counter.roomsRemovedByDeepCompare /
-              (Config.logging.repeat / 1000)} roomsRemovedByDeepCompare/s (total: ${
-        global.counter.roomsRemovedByDeepCompare
-      })
-            ${global.counter.roomsRemovedByNonMatchingRids /
-              (Config.logging.repeat / 1000)} roomsRemovedByNonMatchingRids/s (total: ${
-        global.counter.roomsRemovedByNonMatchingRids
-      })`);
+          global.counter.updates
+        })`);
+      }
 
       global.counter.dbCalls = 0;
-      global.counter.skippedByObjectCache = 0;
-      global.counter.newlyInsertedInChache = 0;
       global.counter.updates = 0;
-      global.counter.shallowCompareRooms = 0;
-      global.counter.serverCacheUsed = 0;
-      global.counter.insertedFromInit = 0;
-      global.counter.totalRoomsChecked = 0;
-      global.counter.roomsRemovedByShallowCompare = 0;
-      global.counter.roomsRemovedByDeepCompare = 0;
-      global.counter.roomsRemovedByNonMatchingRids = 0;
+      global.counter.publications = {};
     }, Config.logging.repeat);
   }
 
@@ -258,7 +213,6 @@ const startQuerries = function(Config, publications) {
 
       // room already exists
       if (_.has(io.sockets.adapter.rooms, hash(room))) {
-        global.counter.serverCacheUsed++;
         //emits the serverdata to the new member of the room without refetching
         socket.emit(payload.publicationNameWithParams, {
           type: Types.INIT,
@@ -344,6 +298,7 @@ const startQuerries = function(Config, publications) {
           io.sockets.adapter.rooms[
             hash(room)
           ].publicationNameWithParams = publicationNameWithParams;
+          io.sockets.adapter.rooms[hash(room)].publicationName = publicationName;
           io.sockets.adapter.rooms[hash(room)].queries = queries;
           io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
           io.sockets.adapter.rooms[hash(room)].templates = templates;
