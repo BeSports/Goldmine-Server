@@ -136,14 +136,16 @@ const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => 
 export default async function(io, db, typer, shouldLog) {
   const QUERY = `LIVE SELECT FROM \`${typer}\``;
   global
-    .nextDB()
+    .nextLiveDB()
     .liveQuery(QUERY, {
       resolver: (a, b) => {
         global.liveQueryTokens.push(_.first(a).token);
+        console.log(_.first(a));
         return a;
       },
     })
     .on('live-insert', res => {
+      console.log('INSERTED', res.content['@class']);
       global.counter.updates++;
 
       if (!doCache(omitter(res), res.cluster, res.position)) {
@@ -171,17 +173,12 @@ export default async function(io, db, typer, shouldLog) {
       global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;
       global.counter.roomsRemovedByNonMatchingRids += roomsRemovedByNonMatchingRids;
 
-      console.log(
-        'doing for',
-        res.content['@class'],
-        'insert',
-        _.size(roomsWithShallowTemplatesForInsert),
-      );
       _.forEach(roomsWithShallowTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
     })
     .on('live-update', res => {
+      console.log('UPDATED', res.content['@class']);
       global.counter.updates++;
       const rid = extractRid(res);
       if (!rid) {
@@ -222,12 +219,6 @@ export default async function(io, db, typer, shouldLog) {
       global.counter.roomsRemovedByShallowCompare += roomsRemovedByShallowCompare;
       global.counter.roomsRemovedByDeepCompare += roomsRemovedByDeepCompare;
 
-      console.log(
-        'doing for',
-        res.content['@class'],
-        'update',
-        _.size(roomsWithDeepTemplatesForInsert),
-      );
       _.forEach(roomsWithDeepTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class'], rid);
       });
@@ -237,7 +228,6 @@ export default async function(io, db, typer, shouldLog) {
       const rid = extractRid(res);
       let roomsWithTemplatesForInsert = _.filter(
         _.map(io.sockets.adapter.rooms, (value, key) => {
-          0;
           return _.find(flattenExtend(value.templates), [
             _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
             res.content['@class'],
