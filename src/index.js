@@ -232,12 +232,7 @@ const startQuerries = function(Config, publications) {
             console.log('joined', hash(room));
           }
         }
-        io.sockets.adapter.rooms[hash(room)].executeQuery(
-          io,
-          db,
-          io.sockets.adapter.rooms[hash(room)],
-          hash(room),
-        );
+
         return;
       }
 
