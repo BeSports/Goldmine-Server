@@ -28,6 +28,7 @@ global.counter = {
   rooms: 0,
   clients: 0,
   publications: {},
+  publicationsWithFullName: {},
 };
 
 /**
@@ -85,6 +86,7 @@ const startQuerries = function(Config, publications) {
       global.counter.dbCalls = 0;
       global.counter.updates = 0;
       global.counter.publications = {};
+      global.counter.publicationsWithFullName = {};
     }, Config.logging.repeat);
   }
 

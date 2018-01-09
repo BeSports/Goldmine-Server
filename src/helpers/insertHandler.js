@@ -28,6 +28,11 @@ export default function insertHandler(io, db, room, roomHash) {
       `counter.publications.${room.publicationName}.counter`,
       _.get(global, `counter.publications.${room.publicationName}.counter`, 0) + 1,
     );
+    _.set(
+      global,
+      `counter.publications.${room.publicationNameWithParams}.counter`,
+      _.get(global, `counter.publications.${room.publicationNameWithParams}.counter`, 0) + 1,
+    );
     const t1 = performance.now();
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
