@@ -30,8 +30,12 @@ export default function insertHandler(io, db, room, roomHash) {
     );
     _.set(
       global,
-      `counter.publications.${room.publicationNameWithParams}.counter`,
-      _.get(global, `counter.publications.${room.publicationNameWithParams}.counter`, 0) + 1,
+      `counter.publicationsWithFullName.${room.publicationNameWithParams}.counter`,
+      _.get(
+        global,
+        `counter.publicationsWithFullName.${room.publicationNameWithParams}.counter`,
+        0,
+      ) + 1,
     );
     const t1 = performance.now();
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
