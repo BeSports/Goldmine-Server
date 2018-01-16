@@ -281,13 +281,16 @@ const startQuerries = function(Config, publications) {
         socket.emit(payload.publicationNameWithParams, responsePayload);
         if (payload.isReactive) {
           // Add publication to client's personal placeholder.
+          // if (connections[socket.id]) {
           connections[socket.id].push(room);
-
           // Add socket to publication.
           socket.join(hash(room));
+          // }
+
           if (_.get(Config, 'logging.publications', false)) {
             console.log('joined', hash(room));
           }
+          // if (io.sockets.adapter.rooms[hash(room)]) {
           io.sockets.adapter.rooms[hash(room)].cache = cache;
           io.sockets.adapter.rooms[hash(room)].hash = hash(room);
           io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
@@ -308,6 +311,7 @@ const startQuerries = function(Config, publications) {
               io.sockets.adapter.rooms[hash(room)].cache = value;
             });
           }
+          // }
         }
       });
     });

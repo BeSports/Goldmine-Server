@@ -50,7 +50,7 @@ export default class OrientDBQueryResolver {
         return result;
       })
       .catch(err => {
-        console.error('ERROR', err);
+        console.error(err);
       });
   }
 
