@@ -7,6 +7,7 @@ let dbNext = 0;
 let dbLiveNext = 0;
 let dbMax = 25;
 let dbLiveMax = 2;
+let config;
 
 global.nextDB = () => {
   dbNext++;
@@ -25,7 +26,13 @@ global.nextLiveDB = () => {
   return dbLiveConn[dbLiveNext];
 };
 
+global.restartLiveDB = sessionId => {
+  const index = _.findIndex(dbLiveConn, ['sessionId', sessionId]);
+  dbLiveConn[index] = new orientjs.ODatabase(Object.assign({ useToken: true }, config.database));
+};
+
 export default function(Config) {
+  config = Config;
   if (Config.connections) {
     dbMax = Config.connections;
   }

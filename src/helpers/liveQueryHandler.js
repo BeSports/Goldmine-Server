@@ -132,14 +132,17 @@ const deepSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck, res) => 
   return toReturn;
 };
 
-export default async function(io, db, typer, shouldLog) {
+const liveQuery = async function(io, typer, shouldLog) {
   const QUERY = `LIVE SELECT FROM \`${typer}\``;
-  global
-    .nextLiveDB()
+  let received = false;
+  let currentToken;
+  const db = global.nextLiveDB();
+  db
     .liveQuery(QUERY, {
       resolver: (a, b) => {
         global.liveQueryTokens.push(_.first(a).token);
-        console.log(_.first(a));
+        console.log('Live subscribed on ', typer, ' live Id: ', _.first(a).token);
+        currentToken = _.first(a).token;
         return a;
       },
     })
@@ -169,6 +172,9 @@ export default async function(io, db, typer, shouldLog) {
       });
     })
     .on('live-update', res => {
+      if (!received) {
+        received = true;
+      }
       console.log('UPDATED', res.content['@class']);
       global.counter.updates++;
       const rid = extractRid(res);
@@ -199,6 +205,8 @@ export default async function(io, db, typer, shouldLog) {
       });
     })
     .on('live-delete', res => {
+      console.log('DELETED', res.content['@class']);
+
       global.updates++;
       const rid = extractRid(res);
       let roomsWithTemplatesForInsert = _.filter(
@@ -218,4 +226,25 @@ export default async function(io, db, typer, shouldLog) {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
     });
-}
+  global
+    .nextDB()
+    .query(`UPDATE ${typer} set goldmineTestParam = ${Math.random() * 1000} LIMIT 1`)
+    .then(() => {
+      setTimeout(() => {
+        if (!received) {
+          console.log('Bad subscription on ', typer, ' restarting now');
+          db.close();
+          restart(io, typer, shouldLog, db.sessionId);
+        } else {
+          console.log('Confirmed working subscription on ', typer);
+        }
+      }, 2500);
+    });
+};
+
+const restart = (io, typer, shouldLog, sessionId) => {
+  global.restartLiveDB(sessionId);
+  liveQuery(io, typer, shouldLog);
+};
+
+export default liveQuery;

@@ -104,8 +104,8 @@ const startQuerries = function(Config, publications) {
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  liveQueryHandler(io, db, 'V', _.get(Config, 'logging.updates', false));
-  liveQueryHandler(io, db, 'E', _.get(Config, 'logging.updates', false));
+  liveQueryHandler(io, 'V', _.get(Config, 'logging.updates', false));
+  liveQueryHandler(io, 'E', _.get(Config, 'logging.updates', false));
 
   // global
   //   .nextDB()
