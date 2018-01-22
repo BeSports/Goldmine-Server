@@ -281,8 +281,9 @@ const startQuerries = function(Config, publications) {
         socket.emit(payload.publicationNameWithParams, responsePayload);
         if (payload.isReactive) {
           // Add publication to client's personal placeholder.
-          // if (connections[socket.id]) {
-          connections[socket.id].push(room);
+          if (connections[socket.id]) {
+            connections[socket.id].push(room);
+          }
           // Add socket to publication.
           socket.join(hash(room));
           // }
@@ -290,28 +291,30 @@ const startQuerries = function(Config, publications) {
           if (_.get(Config, 'logging.publications', false)) {
             console.log('joined', hash(room));
           }
-          // if (io.sockets.adapter.rooms[hash(room)]) {
-          io.sockets.adapter.rooms[hash(room)].cache = cache;
-          io.sockets.adapter.rooms[hash(room)].hash = hash(room);
-          io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
-          io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
-          io.sockets.adapter.rooms[
-            hash(room)
-          ].publicationNameWithParams = publicationNameWithParams;
-          io.sockets.adapter.rooms[hash(room)].publicationName = publicationName;
-          io.sockets.adapter.rooms[hash(room)].queries = queries;
-          io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
-          io.sockets.adapter.rooms[hash(room)].templates = templates;
-          io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
-            leading: false,
-            trailing: true,
-          });
-          if (_.size(cache) === 0) {
-            getParameteredIdsOfTemplate(templates, params, socket.decoded).then(value => {
-              io.sockets.adapter.rooms[hash(room)].cache = value;
+          if (io.sockets.adapter.rooms[hash(room)]) {
+            io.sockets.adapter.rooms[hash(room)].cache = cache;
+            io.sockets.adapter.rooms[hash(room)].hash = hash(room);
+            io.sockets.adapter.rooms[hash(room)].serverCache = sendeableData;
+            io.sockets.adapter.rooms[hash(room)].queryParams = queryParams;
+            io.sockets.adapter.rooms[
+              hash(room)
+            ].publicationNameWithParams = publicationNameWithParams;
+            io.sockets.adapter.rooms[hash(room)].publicationName = publicationName;
+            io.sockets.adapter.rooms[hash(room)].queries = queries;
+            io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
+            io.sockets.adapter.rooms[hash(room)].templates = templates;
+            io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
+              leading: false,
+              trailing: true,
             });
+            if (_.size(cache) === 0) {
+              getParameteredIdsOfTemplate(templates, params, socket.decoded).then(value => {
+                if (io.sockets.adapter.rooms[hash(room)]) {
+                  io.sockets.adapter.rooms[hash(room)].cache = value;
+                }
+              });
+            }
           }
-          // }
         }
       });
     });
