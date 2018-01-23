@@ -226,25 +226,22 @@ const liveQuery = async function(io, typer, shouldLog) {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
     });
-  global
-    .db
+  return await global.db
     .query(`UPDATE ${typer} set goldmineTestParam = ${Math.random() * 1000} LIMIT 1`)
-    .then(() => {
-      setTimeout(() => {
+    .then(async () => {
+      await setTimeout(async () => {
         if (!received) {
-          console.log('Bad subscription on ', typer, ' restarting now');
-          db.close();
-          restart(io, typer, shouldLog, db.sessionId);
+          await db.close();
+          await restart(io, typer, shouldLog, db.sessionId);
         } else {
-          console.log('Confirmed working subscription on ', typer);
         }
       }, 2500);
     });
 };
 
-const restart = (io, typer, shouldLog, sessionId) => {
+const restart = async (io, typer, shouldLog, sessionId) => {
   global.restartLiveDB(sessionId);
-  liveQuery(io, typer, shouldLog);
+  await liveQuery(io, typer, shouldLog);
 };
 
 export default liveQuery;

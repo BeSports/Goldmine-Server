@@ -58,7 +58,7 @@ const init = function(Config, publications) {
 /**
  * Starts all livequerries and keeps track of socketIo, updates
  */
-const startQuerries = function(Config, publications) {
+const startQuerries = async (Config, publications) => {
   server.listen(Config.port, () => {
     console.log('WEB SOCKET LISTENING ON:', Config.port);
   });
@@ -89,23 +89,16 @@ const startQuerries = function(Config, publications) {
       global.counter.publicationsWithFullName = {};
     }, Config.logging.repeat);
   }
-
-  // Keeps track of all new inserts which could
-  // be interesting for future updates.
-  const insertCache = [];
-
   // The variable connections keeps track on
   // which publications the client is subscribed.
   const connections = {};
-
-  const collectionTypes = [];
 
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
 
   // Start livequeries for all classes
-  liveQueryHandler(io, 'V', _.get(Config, 'logging.updates', false));
-  liveQueryHandler(io, 'E', _.get(Config, 'logging.updates', false));
+  await liveQueryHandler(io, 'V', _.get(Config, 'logging.updates', false));
+  await liveQueryHandler(io, 'E', _.get(Config, 'logging.updates', false));
 
   // global
   //   .nextDB()

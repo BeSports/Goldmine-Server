@@ -17,10 +17,7 @@ global.nextLiveDB = () => {
 global.restartLiveDB = sessionId => {
   const index = _.findIndex(dbLiveConn, ['sessionId', sessionId]);
   dbLiveConn[index] = new orientjs.ODatabase(
-    Object.assign(
-      { useToken: true },
-      _.merge(_.omit(config.server, 'pool'), { name: config.databaseName }),
-    ),
+    Object.assign({ useToken: true }, _.merge(_.omit(c.server, 'pool'), { name: c.databaseName })),
   );
 };
 
