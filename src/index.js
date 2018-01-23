@@ -43,9 +43,9 @@ const init = function(Config, publications) {
   global.orientDBConfig = Config.database;
   config = Config;
   const done = require('./db/OrientDbConnection').default(Config);
-  if (!global.nextDB()) {
+  if (!global.db) {
     setTimeout(() => {
-      if (!global.nextDB()) {
+      if (!global.db) {
         console.log('Connection failed');
       } else {
         startQuerries(Config, publications);
@@ -136,9 +136,7 @@ const startQuerries = function(Config, publications) {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    global
-      .nextDB()
-      .query('SELECT _id FROM V LIMIT 1')
+    global.db.query('SELECT _id FROM V LIMIT 1')
       .catch(() => {
         console.error("Couldn't keep database connection alive!");
       });
@@ -382,7 +380,7 @@ const startQuerries = function(Config, publications) {
 const closeAll = async () => {
   await Promise.all(
     _.map(global.liveQueryTokens, async token => {
-      return await nextDB().query(`live unsubscribe ${token}`);
+      return await global.db.query(`live unsubscribe ${token}`);
     }),
   );
   console.warn(

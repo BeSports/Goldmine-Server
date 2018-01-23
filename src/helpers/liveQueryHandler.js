@@ -227,7 +227,7 @@ const liveQuery = async function(io, typer, shouldLog) {
       });
     });
   global
-    .nextDB()
+    .db
     .query(`UPDATE ${typer} set goldmineTestParam = ${Math.random() * 1000} LIMIT 1`)
     .then(() => {
       setTimeout(() => {
