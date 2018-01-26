@@ -34,6 +34,9 @@ export default class OrientDBQueryBuilder {
       this.tempParams = [];
       if (typeof template === 'string') {
         statements.push(template);
+      } else if (template.query) {
+        let query = template.query;
+        statements.push(query);
       } else {
         if (!template.collection) {
           console.log(`No collection name was provided to ${template}`);
