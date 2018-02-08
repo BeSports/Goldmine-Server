@@ -38,15 +38,9 @@ export default function insertHandler(io, db, room, roomHash) {
       ) + 1,
     );
     const t1 = performance.now();
-    const duration = _.round(t1 - t0);
-    _.set(
-      global,
-      `counter.publications.${room.publicationName}.durations`,
-      _.concat(
-        _.get(global, `counter.publications.${room.publicationName}.durations`, []),
-        [duration],
-      ),
-    );
+
+    global.counter.durations.push({publicationName: room.publicationName, duration: _.round(t1 - t0)});
+
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
       return {

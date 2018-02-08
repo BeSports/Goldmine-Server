@@ -29,6 +29,7 @@ global.counter = {
   clients: 0,
   publications: {},
   publicationsWithFullName: {},
+  durations: [],
 };
 
 /**
@@ -87,6 +88,7 @@ const startQuerries = async (Config, publications) => {
       global.counter.updates = 0;
       global.counter.publications = {};
       global.counter.publicationsWithFullName = {};
+      global.counter.durations = [];
     }, Config.logging.repeat);
   }
   // The variable connections keeps track on
@@ -129,10 +131,9 @@ const startQuerries = async (Config, publications) => {
   // Keeps connection open with OrientDB.
 
   setInterval(() => {
-    global.db.query('SELECT _id FROM V LIMIT 1')
-      .catch(() => {
-        console.error("Couldn't keep database connection alive!");
-      });
+    global.db.query('SELECT _id FROM V LIMIT 1').catch(() => {
+      console.error("Couldn't keep database connection alive!");
+    });
   }, 60 * 1000);
 
   // ---------------------------------------------------------------------------------------------------------------------
