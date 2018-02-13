@@ -268,285 +268,130 @@ number/integer -  string/integer
 The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string.
 
 
-##Examples
+## Examples
 
 Let's get started!
 
-### Get all creatures
-
-Get all elements in the collection/class
-
+### Get all users
+Get all elements in the collection their '_id' and 'username', defining _id is not necessary since it will always be fetched for top level objects to identify them.
 **Publication:**
-
 ```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-    }
-  ]
-}
+ allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username'],
+      },
+    ];
+  },
 ```
-
 **Output:**
+Because no params were defined all users are returned with their _id and username
 
-Because no fields were defined everything is returned.
-
-
-### Get all creatures with name and race
-
-Get all elements in the collection/class with a defined projection.
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race']
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-	{
-    	rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    },
-  	...
-]
-```
-
-### Get all creatures with name and race order by name ascending and race descending
-
+### Get all users ordered by creation date
 Get all elements in the collection/class with a defined projection and order on a field.
+Note that the field 'createdAt' was added since adding an orderby serverSide is not 100% certain the same order onn the frontend.
+**Publication:**
+
+```javascript
+allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+      },
+    ];
+  },
+```
+
+**Output:**
+All users ordered by creation date.
+
+### Get the first 10 users with username that were ever created
+Get all elements in the collection/class with a defined projection  and limit by 10.
+**Publication:**
+```javascript
+ allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+        limit: 10,
+      },
+    ];
+  },
+```
+**Output:**
+The first 10 users ever created with their username and the date their accoutn was created
+
+### Get user where username is foo
+Gets a single user using a fixed variable
+**Publication:**
+```javascript
+getUserFoo: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: 'foo',
+        },
+      },
+    ];
+  },
+```
+**Output:**
+Only the user(s) matching the exact username of 'foo' will be returned
+
+### Get users where username not equal to
+return all users where a value does not match a variable
+**Publication:**
+```javascript
+getEveryoneButFoo: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: {
+	    value: 'foo',
+            operator: '<>',
+	  },
+        },
+      },
+    ];
+  },
+```
+
+**Output:**
+All users except for the user named 'foo'
+
+### Get user where name in array
+Gets all object where their value occurs in the array
 
 **Publication:**
 
 ```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      orderBy: ['name', {field: 'race', direction: 'desc'}]
-    }
-  ]
-}
+ getAllUsersInArray: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: {
+            value: ['foo', 'bar'],
+            operator: 'in',
+          },
+        },
+      },
+    ];
+  },
 ```
 
 **Output:**
-
-```javascript
-[
-	{
-    	rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    },
-  	...
-]
-```
-
-### Get all creatures with name and race skip and limit
-
-Get all elements in the collection/class with a defined projection and skip elements and limit by 5.
-
-Skip: 200
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      skip: 'skip',
-      limit: 5
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-  {
-        rid: '#11:200',
-        name: 'Celeborn (White Tree)',
-        race: 'Tree'
-    },
-    {
-        rid: '#11:201',
-        name: 'Celeborn',
-        race: 'Sinda'
-    },
-    {
-        rid: '#11:202',
-        name: 'Celebrían',
-        race: 'Falmar/Falas Elf'
-    },
-    {
-        rid: '#11:203',
-        name: 'Celebrimbor',
-        race: 'Noldo'
-    },
-    {
-        rid: '#11:204',
-        name: 'Celebrindor',
-        race: 'Arnorian'
-    }
-]
-```
-
-### Get creature where name equal to
-
-Name: Boromir
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collectionName: 'creatures',
-      collection: {type: Types.VERTEX, name: 'creature'},
-      fields: ['name', 'race'],
-      params: [
-        ['name']
-      ]
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-  	{
-      	rid: '#11:166',
-      	name: 'Boromir',
-      	race: 'Gondorian'
-  	}
-]
-```
-
-### Get creatures where name not equal to
-
-Name: Boromir
-
-**Publication:**
-
-```javascript
-{
-  publicationName: (creatureName) => {
-  return ([
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      params: [
-        name: creatureName
-      ]
-    }
-  ]);
-  }
-}
-```
-
-**Output:**
-
-```javascript
-[
-  {
-        rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    }
- ]
-```
-
-### Get creature where name equal to or equal to
-
-Name one: Boromir
-Name two: Adanel
-
-**Publication:**
-
-```javascript
-{
-  publicationName: (names) => {
-  return ([
-    {
-      collectionName: 'creatures',
-      collection: {type: Types.VERTEX, name: 'creature'},
-      fields: ['name', 'race'],
-      params: [
-        name: {
-	  value: [names],
-	  operator: ['in']
-	}
-      ]
-    }
-  ]);
-  }
-}
-```
-
-**Output:**
-
-```javascript
-[
-  	{
-        rid: '#11:5',
-        name: 'Adanel',
-        race: 'Adan'
-    },
-    {
-        rid: '#11:166',
-        name: 'Boromir',
-        race: 'Gondorian'
-    }
-]
-```
+Both the users foo and bar will be returned
 
 ## Contributors
 
