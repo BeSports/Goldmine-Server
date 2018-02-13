@@ -3,8 +3,7 @@
 # GoldmineJS - Server
 
 [![NPM](https://nodei.co/npm/goldmine-server.png?downloads=true&downloadRank=true)](https://nodei.co/npm/goldmine-server/)
-
-Documentation needs to be updated, if you would like to use the newer version, wait until it gets updated or contact [me](mailto:michiel@kayzr.com) for instant updates
+Any questions concerning GoldmineJS can be adressed to [me](mailto:michiel@kayzr.com) directly or by opening an issue
 
 ## Introduction
 
@@ -12,7 +11,8 @@ GoldmineJS is a framework for building reactive web apps in Javascript.
 
 ## Starting from scratch
 
-We're going to build a GoldmineJS server which will serve the demo of the client package of GoldmineJS.
+We're going to build a GoldmineJS server, the server mainly relies on socket.io and orientJS.
+Other databases might be added in the future if requested/necessary.
 
 ### Prerequisites
 
@@ -20,12 +20,14 @@ We're going to build a GoldmineJS server which will serve the demo of the client
 * npm package manager installed
 * [Git](https://git-scm.com/) installed
 * A running OrientDB server
-  * "Tolkien-Arda" database installed (freely available as a [public database](https://github.com/orientechnologies/public-databases))
 
 ### Installation
 
 ```
-$ npm install Goldmine-Server
+$ npm install goldmine-server
+```
+```
+$ yarn add goldmine-server
 ```
 
 ## Configuration
@@ -36,25 +38,41 @@ Before running our server there are some things left to do. Since we have to ini
 
 ```javascript
 const config = {
-  // General
-  port: 3021, // Port on which to run the goldmine-server
+  debug: true, // enables or disables any analytics/logging at all
+  port: 3404, // port to run the goldmine server on
 
   // Database
-  database: { // Your database credentials
-    host: '127.0.0.1',
-    port: 2424,
-    name: 'MyDatabase',
-    username: 'server',
-    password: 'changethissecurepassword',
+  server: {
+    servers: [
+      {
+        "host": "127.0.0.1",
+        "port": 2424
+      },
+      // more servers from the cluster can be added here, a single server will also work
+    ],
+    host: "127.0.0.1", // ip address of the host running one of the servers
+    username: 'goldmine', // name of the user GoldmineJS can use
+    password: 'securegoldmineuserpassword', // chosen password for the user selected above
+    pool: {
+      max: 20, // amount of pooled connections to use, recommended to use at least 5, maximum of 50
+    },
+  },
+  databaseName: 'goldminetestdb',  // name of the database you will be connection to on the servers mentioned above
+  auth: {
+    force: false, // choses if any authentication is forced or not
+    time: 5000, // time until authentication should be completed, otherwise a forced disconnect happens
+    validator: confirmApiToken, // functions which validates the users identity on your site/platform
   },
 
   logging: {
-    connections: false,	// toggle loggin on connection open/close
-    authentication: false, // toggle authentication logging
-    subscriptions: false, // toggle the logging of new subscriptions, deleting subsscriptions
-    publications: false, // toggle the logging of what is published
-    statistics: false, // toggle the statistics log
-    repeat: 10000, // timer between each stats log
+    connections: false, // logs all created/destroyed connections
+    authentication: false, // logs every user whom authenticates
+    subscriptions: false, // logs the object of each subscription
+    publications: false, // logs all new publications that are called by clients
+    updates: false, // logs all database udpates received by the server
+    statistics: true, // choses if the statistics should be logged at all
+    repeat: 5 * 1000, // choses the interval for statistics, uses milliseconds
+    custom: customLogsFunction, // custom logging function you can provide yourself to platforms of your choice. This option will only work if logging.statistics is true
   },
 };
 ```
@@ -65,22 +83,24 @@ Next we make a publications object on which clients can subscribe and receive th
 The keys of this object are the names of the publications.
 
 
-When you create a new publication you have to give it a name like in this example *getAllUserIds*. The publication will always be an array with objects, a function returning an array with objects. This makes it possible to have multiple main queries in a single publication. For our example we only need one main query. 
+When you create a new publication you have to give it a name like in this example *getMyUser*. The publication will always be an array with objects, a function returning an array with objects. This makes it possible to have multiple main queries in a single publication. For our example we only need one main query. 
 
 ```javascript
 const publications = {
-  getAllUserIds: () => {
+  getMyUser: (myUserId) => {
    return ([
       {
         collection: 'user',
       	fields: ['_id'],
-      }
+	params: {
+	  _id: myUserId
+        },
     ]);
   }
-}
+};
 ```
 
-This subscription would execute the query `SELECT _id from user`;
+This subscription would execute the query `SELECT _id from user where _id = ${myUserId}`;
 
 
 ### Start the server
@@ -106,58 +126,44 @@ Below you can find the complete structure of a publication. Each property will b
 All properties with an ***** are mandatory.
 
 * collection* **(string)**
-* fields **(array)**
+* fields* **(array)**
 * params **(array)**
-* edgeFields ** array **
 * extend **(array)**
-  * target* **(string)**
   * collection* **(string)**
+  * target* **(string)**
+  * relation* **(string)**
   * fields **(array)**
   * params **(array)**
-  * relation* **(string)**
+  * edgeFields **(array)**
 * orderBy **(array)**
 * skip **(string)**
 * limit **(integer | string)**
 
-### collection
-
+### collection - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory 
-
 **Description**:
-The property *collection* defines in which collection/class the data has to be fetched. For instance, I want to fetch a user then I would search for a user in the `user` collection/class.
+The property *collection* defines in which collection the data has to be fetched. For instance, I want to fetch a user then I would search for a user in the `user` collection.
 
-### fields
-
+### fields - mandatory on top level, otherwise optional
 **Value:** 
-array
-
-**Necessity:** 
-optional 
+array / null
 
 **Description**:
-The *fields* property provides the ability to select which fields should be returned. When this property isn't defined only the IDs will be returned.
-
+The *fields* property provides the ability to select which fields should be returned. When this property isn't defined only the _id's will be returned.
 For example: `['username', 'description', 'lastSeen']`
+It is mandatory on the top level query since otherwise all data of that obejct would be received by the server, which can be a lot more then you need.
+On extends it is optional and will result in the '_id' property to be defaulted to. If the value of fields is null the extend will not be fetched any data from.
 
-### params
-
+### params - optional
 **Value:** 
-array
-
-**Necessity:** 
-optional
+array/object
 
 **Description**:
-The property *params* makes it possible to filter through the data. The array is very flexible but can be rather complex when you first use it. It's important to know that a rule in *params* is an array that contains two or three elements. When referring to a field in the database you use the name of that field. Whenever referring to a parameter that will be passed into the resolver you start it with a colon (:).
-
+This is an object/array of optional values to filter your result by.
 You can find a list of all the filters after the examples.
-
-**Examples rules:**
-
+For example
 ```javascript
 // Search for multiple friends by Id
 {
