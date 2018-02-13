@@ -3,8 +3,7 @@
 # GoldmineJS - Server
 
 [![NPM](https://nodei.co/npm/goldmine-server.png?downloads=true&downloadRank=true)](https://nodei.co/npm/goldmine-server/)
-
-Documentation needs to be updated, if you would like to use the newer version, wait until it gets updated or contact [me](mailto:michiel@kayzr.com) for instant updates
+Any questions concerning GoldmineJS can be adressed to [me](mailto:michiel@kayzr.com) directly or by opening an issue
 
 ## Introduction
 
@@ -12,7 +11,8 @@ GoldmineJS is a framework for building reactive web apps in Javascript.
 
 ## Starting from scratch
 
-We're going to build a GoldmineJS server which will serve the demo of the client package of GoldmineJS.
+We're going to build a GoldmineJS server, the server mainly relies on socket.io and orientJS.
+Other databases might be added in the future if requested/necessary.
 
 ### Prerequisites
 
@@ -20,12 +20,14 @@ We're going to build a GoldmineJS server which will serve the demo of the client
 * npm package manager installed
 * [Git](https://git-scm.com/) installed
 * A running OrientDB server
-  * "Tolkien-Arda" database installed (freely available as a [public database](https://github.com/orientechnologies/public-databases))
 
 ### Installation
 
 ```
-$ npm install Goldmine-Server
+$ npm install goldmine-server
+```
+```
+$ yarn add goldmine-server
 ```
 
 ## Configuration
@@ -36,25 +38,41 @@ Before running our server there are some things left to do. Since we have to ini
 
 ```javascript
 const config = {
-  // General
-  port: 3021, // Port on which to run the goldmine-server
+  debug: true, // enables or disables any analytics/logging at all
+  port: 3404, // port to run the goldmine server on
 
   // Database
-  database: { // Your database credentials
-    host: '127.0.0.1',
-    port: 2424,
-    name: 'MyDatabase',
-    username: 'server',
-    password: 'changethissecurepassword',
+  server: {
+    servers: [
+      {
+        "host": "127.0.0.1",
+        "port": 2424
+      },
+      // more servers from the cluster can be added here, a single server will also work
+    ],
+    host: "127.0.0.1", // ip address of the host running one of the servers
+    username: 'goldmine', // name of the user GoldmineJS can use
+    password: 'securegoldmineuserpassword', // chosen password for the user selected above
+    pool: {
+      max: 20, // amount of pooled connections to use, recommended to use at least 5, maximum of 50
+    },
+  },
+  databaseName: 'goldminetestdb',  // name of the database you will be connection to on the servers mentioned above
+  auth: {
+    force: false, // choses if any authentication is forced or not
+    time: 5000, // time until authentication should be completed, otherwise a forced disconnect happens
+    validator: confirmApiToken, // functions which validates the users identity on your site/platform
   },
 
   logging: {
-    connections: false,	// toggle loggin on connection open/close
-    authentication: false, // toggle authentication logging
-    subscriptions: false, // toggle the logging of new subscriptions, deleting subsscriptions
-    publications: false, // toggle the logging of what is published
-    statistics: false, // toggle the statistics log
-    repeat: 10000, // timer between each stats log
+    connections: false, // logs all created/destroyed connections
+    authentication: false, // logs every user whom authenticates
+    subscriptions: false, // logs the object of each subscription
+    publications: false, // logs all new publications that are called by clients
+    updates: false, // logs all database udpates received by the server
+    statistics: true, // choses if the statistics should be logged at all
+    repeat: 5 * 1000, // choses the interval for statistics, uses milliseconds
+    custom: customLogsFunction, // custom logging function you can provide yourself to platforms of your choice. This option will only work if logging.statistics is true
   },
 };
 ```
@@ -65,22 +83,24 @@ Next we make a publications object on which clients can subscribe and receive th
 The keys of this object are the names of the publications.
 
 
-When you create a new publication you have to give it a name like in this example *getAllUserIds*. The publication will always be an array with objects, a function returning an array with objects. This makes it possible to have multiple main queries in a single publication. For our example we only need one main query. 
+When you create a new publication you have to give it a name like in this example *getMyUser*. The publication will always be an array with objects, a function returning an array with objects. This makes it possible to have multiple main queries in a single publication. For our example we only need one main query. 
 
 ```javascript
 const publications = {
-  getAllUserIds: () => {
+  getMyUser: (myUserId) => {
    return ([
       {
         collection: 'user',
       	fields: ['_id'],
-      }
+	params: {
+	  _id: myUserId
+        },
     ]);
   }
-}
+};
 ```
 
-This subscription would execute the query `SELECT _id from user`;
+This subscription would execute the query `SELECT _id from user where _id = ${myUserId}`;
 
 
 ### Start the server
@@ -106,58 +126,44 @@ Below you can find the complete structure of a publication. Each property will b
 All properties with an ***** are mandatory.
 
 * collection* **(string)**
-* fields **(array)**
+* fields* **(array)**
 * params **(array)**
-* edgeFields ** array **
 * extend **(array)**
-  * target* **(string)**
   * collection* **(string)**
+  * target* **(string)**
+  * relation* **(string)**
   * fields **(array)**
   * params **(array)**
-  * relation* **(string)**
+  * edgeFields **(array)**
 * orderBy **(array)**
 * skip **(string)**
 * limit **(integer | string)**
 
-### collection
-
+### collection - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory 
-
 **Description**:
-The property *collection* defines in which collection/class the data has to be fetched. For instance, I want to fetch a user then I would search for a user in the `user` collection/class.
+The property *collection* defines in which collection the data has to be fetched. For instance, I want to fetch a user then I would search for a user in the `user` collection.
 
-### fields
-
+### fields - mandatory on top level, otherwise optional
 **Value:** 
-array
-
-**Necessity:** 
-optional 
+array / null
 
 **Description**:
-The *fields* property provides the ability to select which fields should be returned. When this property isn't defined only the IDs will be returned.
-
+The *fields* property provides the ability to select which fields should be returned. When this property isn't defined only the _id's will be returned.
 For example: `['username', 'description', 'lastSeen']`
+It is mandatory on the top level query since otherwise all data of that obejct would be received by the server, which can be a lot more then you need.
+On extends it is optional and will result in the '_id' property to be defaulted to. If the value of fields is null the extend will not be fetched any data from.
 
-### params
-
+### params - optional
 **Value:** 
-array
-
-**Necessity:** 
-optional
+array/object
 
 **Description**:
-The property *params* makes it possible to filter through the data. The array is very flexible but can be rather complex when you first use it. It's important to know that a rule in *params* is an array that contains two or three elements. When referring to a field in the database you use the name of that field. Whenever referring to a parameter that will be passed into the resolver you start it with a colon (:).
-
+This is an object/array of optional values to filter your result by.
 You can find a list of all the filters after the examples.
-
-**Examples rules:**
-
+For example
 ```javascript
 // Search for multiple friends by Id
 {
@@ -171,23 +177,11 @@ You can find a list of all the filters after the examples.
 {
   _id: 'friendId1'
 }
-
-//Search where somthing doesn't exist
-{
-  verifiedMail: {
-    operator: 'IS NOT DEFINED',
-  },
-},
-...
 ```
 
-### extend
-
+### extend  - optional
 **Value:** 
 array
-
-**Necessity:** 
-optional
 
 **Description**:
 An extend makes it possible to fetch data that is connect with each other. You can make a comparison with JOINs in SQL. Just like multiple main queries you can have multiple extends.
@@ -198,68 +192,49 @@ Example for a full extend:
 extend: [
   {
     collection: 'user',
-    target: 'friend',
-    relation: 'user_user_following',
-    params: [
-      verifiedMail: true
-    ]
+    target: 'friends',
+    relation: 'user_login',
+    params: {
+      _id: myUserId
+    }
   }
 ]
 ```
 
-#### target
-
+#### target - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory
-
 **Description**:
-The *target* property defines where the dataset of the extend must store his data for each element.
+The *target* property defines where the dataset of the extend must store its data inside the top level object.
 
 
-#### relation 
-
+#### relation - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory
-
 **Description**:
-Specific for a GraphDB the name of the relation is necessary.
+Defines the edge over which the vertex above and the extend are connected
 
-#### direction
-
+#### direction - optional
 **Value:** 
-string
-
-**Necessity:** 
-optional
+string('out'/'in')
 
 **Description**:
-Specific for a GraphDB it can be necessary to define the direction of traversing.
-This is currently being autoset to BOTH, but will come back to in and out in the future
+GoldmineJS will use both as default and the performance difference between out/in/both is negligable, the only need for this is when a collection has an edge referring back to itself.
 
-#### multi
-
+#### multi - optional(recommended)
 **Value:** 
 boolean
 
-**Necessity:** 
-optional
-
 **Description**:
 When you expect one result back from the extend you can set *multi* to *false*. Default results from the extend are stored in an object assigned to the *target* property. When *multi* is *true* the *target* property will contain an array and not an object.
+Setting this value will assure you that a single object is an array if there currently is only one, and more will be added later.
+If an array is being used with multi:false then all values will be projected on a single object.
 
-### orderBy
-
+### orderBy - optional
 **Value:** 
 array
-
-**Necessity:** 
-optional
 
 **Description**:
 You can order the results using the *orderBy* property. You can't order on data returned in extends! When using the short version syntax the direction defaults to ascending.
@@ -278,316 +253,169 @@ You can order the results using the *orderBy* property. You can't order on data 
 ]
 ```
 
-### skip
-
+### skip - optional
 **Value:** 
-string
-
-**Necessity:** 
-optional
+number/integer - string/integer
 
 **Description**:
-By using *skip* you can choose your starting point in the dataset. 
+By using *skip* you can choose your starting point in the dataset, most usefull for pagination
 
-```javascript
-skip: 'skip'
-```
-
-### limit
-
+### limit - optional
 **Value:** 
-integer | object
-
-**Necessity:** 
-optional
+number/integer -  string/integer
 
 **Description**:
-The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string. The integer will make it a hard limit and the string will make it dynamic.
+The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string.
 
+## Variables
+Variables are optional to be passed by the frontend code, these can be accessed by defining them in the function.
+Important note: the authentication fdunction can overwrite all variables the client decides since the server it's values are always correct. 
 ```javascript
-limit: 10
-limit: 'limit'
+ myUser: ({serverUserId}) => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username'],
+	params: {
+	  _id: serverUserId,
+	}
+      },
+    ];
+  },
 ```
 
-##Examples
+## Examples
 
 Let's get started!
 
-### Get all creatures
-
-Get all elements in the collection/class
-
+### Get all users
+Get all elements in the collection their '_id' and 'username', defining _id is not necessary since it will always be fetched for top level objects to identify them.
 **Publication:**
-
 ```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-    }
-  ]
-}
+ allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username'],
+      },
+    ];
+  },
 ```
-
 **Output:**
+Because no params were defined all users are returned with their _id and username
 
-Because no fields were defined everything is returned.
-
-
-### Get all creatures with name and race
-
-Get all elements in the collection/class with a defined projection.
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race']
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-	{
-    	rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    },
-  	...
-]
-```
-
-### Get all creatures with name and race order by name ascending and race descending
-
+### Get all users ordered by creation date
 Get all elements in the collection/class with a defined projection and order on a field.
+Note that the field 'createdAt' was added since adding an orderby serverSide is not 100% certain the same order onn the frontend.
+**Publication:**
+
+```javascript
+allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+      },
+    ];
+  },
+```
+
+**Output:**
+All users ordered by creation date.
+
+### Get the first 10 users with username that were ever created
+Get all elements in the collection/class with a defined projection  and limit by 10.
+**Publication:**
+```javascript
+ allUsers: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+        limit: 10,
+      },
+    ];
+  },
+```
+**Output:**
+The first 10 users ever created with their username and the date their accoutn was created
+
+### Get user where username is foo
+Gets a single user using a fixed variable
+**Publication:**
+```javascript
+getUserFoo: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: 'foo',
+        },
+      },
+    ];
+  },
+```
+**Output:**
+Only the user(s) matching the exact username of 'foo' will be returned
+
+### Get users where username not equal to
+return all users where a value does not match a variable
+**Publication:**
+```javascript
+getEveryoneButFoo: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: {
+	    value: 'foo',
+            operator: '<>',
+	  },
+        },
+      },
+    ];
+  },
+```
+
+**Output:**
+All users except for the user named 'foo'
+
+### Get user where name in array
+Gets all object where their value occurs in the array
 
 **Publication:**
 
 ```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      orderBy: ['name', {field: 'race', direction: 'desc'}]
-    }
-  ]
-}
+ getAllUsersInArray: () => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username', 'createdAt'],
+        params: {
+          username: {
+            value: ['foo', 'bar'],
+            operator: 'in',
+          },
+        },
+      },
+    ];
+  },
 ```
 
 **Output:**
+Both the users foo and bar will be returned
 
-```javascript
-[
-	{
-    	rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    },
-  	...
-]
-```
+## Authentication
 
-### Get all creatures with name and race skip and limit
-
-Get all elements in the collection/class with a defined projection and skip elements and limit by 5.
-
-Skip: 200
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      skip: 'skip',
-      limit: 5
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-  {
-        rid: '#11:200',
-        name: 'Celeborn (White Tree)',
-        race: 'Tree'
-    },
-    {
-        rid: '#11:201',
-        name: 'Celeborn',
-        race: 'Sinda'
-    },
-    {
-        rid: '#11:202',
-        name: 'Celebrían',
-        race: 'Falmar/Falas Elf'
-    },
-    {
-        rid: '#11:203',
-        name: 'Celebrimbor',
-        race: 'Noldo'
-    },
-    {
-        rid: '#11:204',
-        name: 'Celebrindor',
-        race: 'Arnorian'
-    }
-]
-```
-
-### Get creature where name equal to
-
-Name: Boromir
-
-**Publication:**
-
-```javascript
-{
-  publicationName: [
-    {
-      collectionName: 'creatures',
-      collection: {type: Types.VERTEX, name: 'creature'},
-      fields: ['name', 'race'],
-      params: [
-        ['name']
-      ]
-    }
-  ]
-}
-```
-
-**Output:**
-
-```javascript
-[
-  	{
-      	rid: '#11:166',
-      	name: 'Boromir',
-      	race: 'Gondorian'
-  	}
-]
-```
-
-### Get creatures where name not equal to
-
-Name: Boromir
-
-**Publication:**
-
-```javascript
-{
-  publicationName: (creatureName) => {
-  return ([
-    {
-      collection: 'creature'
-      fields: ['name', 'race'],
-      params: [
-        name: creatureName
-      ]
-    }
-  ]);
-  }
-}
-```
-
-**Output:**
-
-```javascript
-[
-  {
-        rid: '#11:0',
-        name: 'Adalbert Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:1',
-        name: 'Adaldrida Bolger',
-        race: 'Hobbit'
-    },
-    {
-        rid: '#11:2',
-        name: 'Adalgar Bolger',
-        race: 'Hobbit'
-    }
- ]
-```
-
-### Get creature where name equal to or equal to
-
-Name one: Boromir
-Name two: Adanel
-
-**Publication:**
-
-```javascript
-{
-  publicationName: (names) => {
-  return ([
-    {
-      collectionName: 'creatures',
-      collection: {type: Types.VERTEX, name: 'creature'},
-      fields: ['name', 'race'],
-      params: [
-        name: {
-	  value: [names],
-	  operator: ['in']
-	}
-      ]
-    }
-  ]);
-  }
-}
-```
-
-**Output:**
-
-```javascript
-[
-  	{
-        rid: '#11:5',
-        name: 'Adanel',
-        race: 'Adan'
-    },
-    {
-        rid: '#11:166',
-        name: 'Boromir',
-        race: 'Gondorian'
-    }
-]
-```
+### Validator
+The validator function is a custom piece of code which allows you to verify JWT's, other keys, users, whatever your security measures are.
+The function has another really important functionality which is to return variables that will be locked to that socket connection.
+Usually you would store a userId or a permission in the connection.
+These veriables can be used like any other variables received from the client, the server variables will override a client variable if they both are named in the same manner.
 
 ## Contributors
 
