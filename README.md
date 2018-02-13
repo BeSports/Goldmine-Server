@@ -393,6 +393,14 @@ Gets all object where their value occurs in the array
 **Output:**
 Both the users foo and bar will be returned
 
+## Authentication
+
+### Validator
+The validator function is a custom piece of code which allows you to verify JWT's, other keys, users, whatever your security measures are.
+The function has another really important functionality which is to return variables that will be locked to that socket connection.
+Usually you would store a userId or a permission in the connection.
+These veriables can be used like any other variables received from the client, the server variables will override a client variable if they both are named in the same manner.
+
 ## Contributors
 
 - [Jasper Dansercoer](http://www.jdansercoer.be/)
