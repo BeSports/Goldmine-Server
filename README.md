@@ -267,6 +267,22 @@ number/integer -  string/integer
 **Description**:
 The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string.
 
+## Variables
+Variables are optional to be passed by the frontend code, these can be accessed by defining them in the function.
+Important note: the authentication fdunction can overwrite all variables the client decides since the server it's values are always correct. 
+```javascript
+ myUser: ({serverUserId}) => {
+    return [
+      {
+        collection: 'user',
+        fields: ['username'],
+	params: {
+	  _id: serverUserId,
+	}
+      },
+    ];
+  },
+```
 
 ## Examples
 
