@@ -104,7 +104,7 @@ export default class OrientDBQueryBuilder {
         _.map(this.tempParams, function(value, property) {
           statementTemp = _.replace(
             statementTemp,
-            ':goldmine' + property,
+            new RegExp(':goldmine' + property, 'g'),
             typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value),
           );
         });
