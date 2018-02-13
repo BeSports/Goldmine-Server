@@ -177,23 +177,11 @@ For example
 {
   _id: 'friendId1'
 }
-
-//Search where somthing doesn't exist
-{
-  verifiedMail: {
-    operator: 'IS NOT DEFINED',
-  },
-},
-...
 ```
 
-### extend
-
+### extend  - optional
 **Value:** 
 array
-
-**Necessity:** 
-optional
 
 **Description**:
 An extend makes it possible to fetch data that is connect with each other. You can make a comparison with JOINs in SQL. Just like multiple main queries you can have multiple extends.
@@ -204,68 +192,49 @@ Example for a full extend:
 extend: [
   {
     collection: 'user',
-    target: 'friend',
-    relation: 'user_user_following',
-    params: [
-      verifiedMail: true
-    ]
+    target: 'friends',
+    relation: 'user_login',
+    params: {
+      _id: myUserId
+    }
   }
 ]
 ```
 
-#### target
-
+#### target - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory
-
 **Description**:
-The *target* property defines where the dataset of the extend must store his data for each element.
+The *target* property defines where the dataset of the extend must store its data inside the top level object.
 
 
-#### relation 
-
+#### relation - mandatory
 **Value:** 
 string
 
-**Necessity:** 
-mandatory
-
 **Description**:
-Specific for a GraphDB the name of the relation is necessary.
+Defines the edge over which the vertex above and the extend are connected
 
-#### direction
-
+#### direction - optional
 **Value:** 
-string
-
-**Necessity:** 
-optional
+string('out'/'in')
 
 **Description**:
-Specific for a GraphDB it can be necessary to define the direction of traversing.
-This is currently being autoset to BOTH, but will come back to in and out in the future
+GoldmineJS will use both as default and the performance difference between out/in/both is negligable, the only need for this is when a collection has an edge referring back to itself.
 
-#### multi
-
+#### multi - optional(recommended)
 **Value:** 
 boolean
 
-**Necessity:** 
-optional
-
 **Description**:
 When you expect one result back from the extend you can set *multi* to *false*. Default results from the extend are stored in an object assigned to the *target* property. When *multi* is *true* the *target* property will contain an array and not an object.
+Setting this value will assure you that a single object is an array if there currently is only one, and more will be added later.
+If an array is being used with multi:false then all values will be projected on a single object.
 
-### orderBy
-
+### orderBy - optional
 **Value:** 
 array
-
-**Necessity:** 
-optional
 
 **Description**:
 You can order the results using the *orderBy* property. You can't order on data returned in extends! When using the short version syntax the direction defaults to ascending.
@@ -284,36 +253,20 @@ You can order the results using the *orderBy* property. You can't order on data 
 ]
 ```
 
-### skip
-
+### skip - optional
 **Value:** 
-string
-
-**Necessity:** 
-optional
+number/integer - string/integer
 
 **Description**:
-By using *skip* you can choose your starting point in the dataset. 
+By using *skip* you can choose your starting point in the dataset, most usefull for pagination
 
-```javascript
-skip: 'skip'
-```
-
-### limit
-
+### limit - optional
 **Value:** 
-integer | object
-
-**Necessity:** 
-optional
+number/integer -  string/integer
 
 **Description**:
-The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string. The integer will make it a hard limit and the string will make it dynamic.
+The *limit* property gives you the ability to limit the amount of results in the dataset. Just like *skip* you can either pass an integer or a string.
 
-```javascript
-limit: 10
-limit: 'limit'
-```
 
 ##Examples
 
