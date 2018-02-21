@@ -156,6 +156,10 @@ const startQuerries = async (Config, publications) => {
       console.log('CLIENT CONNECTED:', socket.id);
     }
 
+    socket.on('pingConnection', data => {
+      io.sockets.emit('pongConnection', data);
+    });
+
     // -----------------------------------------------------
     // -----------------------------------------------------
 
