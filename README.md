@@ -315,7 +315,7 @@ allUsers: () => {
       {
         collection: 'user',
         fields: ['username', 'createdAt'],
-        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+        orderBy: [{ field: 'createdAt', direction: 'asc' }],
       },
     ];
   },
@@ -333,7 +333,7 @@ Get all elements in the collection/class with a defined projection  and limit by
       {
         collection: 'user',
         fields: ['username', 'createdAt'],
-        orderBy: [{ fields: 'createdAt', direction: 'asc' }],
+        orderBy: [{ field: 'createdAt', direction: 'asc' }],
         limit: 10,
       },
     ];
