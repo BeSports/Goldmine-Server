@@ -1,14 +1,9 @@
 import _ from 'lodash';
-import Builder from '../builders/OrientDbQueryBuilder';
 import Resolver from '../resolvers/OrientDbQueryResolver';
 import {
-  extractParams,
-  extractRid,
   emitResults,
   getParameteredIdsOfTemplate,
-  flattenExtend,
 } from './helperFunctions';
-import OperationTypes from '../enums/OperationTypes';
 const { performance } = require('perf_hooks');
 const deepDifference = require('deep-diff');
 /**

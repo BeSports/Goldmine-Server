@@ -1,15 +1,8 @@
 import _ from 'lodash';
-import OperationTypes from '../enums/OperationTypes';
 import {
-  emitResults,
   extractRid,
-  getCollectionName,
-  getEdgeFieldsForExtendOverRelation,
   flattenExtend,
 } from './helperFunctions';
-import Types from '../enums/Types';
-import insertHandler from './insertHandler';
-import * as pluralize from 'pluralize';
 import shallowequal from 'shallowequal';
 
 const isVertexWithEdges = res => {

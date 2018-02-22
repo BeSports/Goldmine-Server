@@ -31,24 +31,29 @@ export function extractParams(publicationNameWithParams) {
 
   let params = {};
   let key, value;
-  _.forEach(strParamsArray, item => {
-    index = item.indexOf('=');
-    key = item.substr(0, index);
-    value = JSON.parse(
-      typeof item.substr(index + 1) === 'string' && _.first(item.substr(index + 1)) !== '"'
-        ? _.first(item.substr(index + 1)) === '['
-          ? `${item.substr(index + 1)}`
-          : `"${item.substr(index + 1)}"`
-        : item.substr(index + 1),
-    );
+  try {
+    _.forEach(strParamsArray, item => {
+      index = item.indexOf('=');
+      key = item.substr(0, index);
+      value = JSON.parse(
+        typeof item.substr(index + 1) === 'string' && _.first(item.substr(index + 1)) !== '"'
+          ? _.first(item.substr(index + 1)) === '['
+            ? `${item.substr(index + 1)}`
+            : `"${item.substr(index + 1)}"`
+          : item.substr(index + 1),
+      );
 
-    // An OrientDB RID has to be treated differently.
-    if (!(value instanceof Array) && isNaN(value) && value.startsWith('#')) {
-      params[key] = Orient.RID(value);
-    } else {
-      params[key] = isNaN(value) ? value : Number(value);
-    }
-  });
+      // An OrientDB RID has to be treated differently.
+      if (!(value instanceof Array) && isNaN(value) && value.startsWith('#')) {
+        params[key] = Orient.RID(value);
+      } else {
+        params[key] = isNaN(value) ? value : Number(value);
+      }
+    });
+  } catch (err) {
+    console.log(err, publicationNameWithParams);
+    console.error({ err, queries: publicationNameWithParams });
+  }
 
   return params;
 }

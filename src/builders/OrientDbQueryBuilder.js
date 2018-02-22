@@ -1,7 +1,5 @@
 import _ from 'lodash';
 import OrderTypes from '../enums/OrderTypes';
-import Types from '../enums/Types';
-import DirectionTypes from '../enums/DirectionTypes';
 
 export default class OrientDBQueryBuilder {
   constructor(templates, params, decoded) {

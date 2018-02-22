@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import pluralize from 'pluralize';
 import { flattenExtend, getCollectionName, extractRid } from '../helpers/helperFunctions';
 
 const setCache = object => {
