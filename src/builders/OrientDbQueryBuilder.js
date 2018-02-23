@@ -74,9 +74,7 @@ export default class OrientDBQueryBuilder {
           ${/* insert the where clauses built before */ ''}
           ${_.join(
             _.map(whereStmts, (whereStmt, i) => {
-              return `let $${i + 1} = ${whereStmt} ${
-                orderByStmt ? 'ORDER BY ' + orderByStmt : ''
-              } ${paginationStmt ? paginationStmt : ''}`;
+              return `let $${i + 1} = ${whereStmt}`;
             }),
             ' ;',
           )}
@@ -121,9 +119,11 @@ export default class OrientDBQueryBuilder {
   createWherePaths(template) {
     let paths = [];
     let ownParams = '';
+    let ownOrderBy = false;
+    let ownPagination = false;
     let optionalPaths = [];
     let relationString = '';
-    if (template.extend && template.extend instanceof Array && _.size(template.extend) > 0) {
+    if (template.extend && _.isArray(template.extend) && _.size(template.extend) > 0) {
       optionalPaths = _.flatten(
         _.filter(
           _.map(template.extend, ext => {
@@ -139,22 +139,27 @@ export default class OrientDBQueryBuilder {
     if (template.params) {
       ownParams = this.buildObject(template.params, '');
     }
+    if (template.orderBy) {
+      ownOrderBy = this.buildOrderByStmt(template);
+      ownPagination = this.buildPaginationStmt(template);
+    }
     if (template.relation) {
       relationString = `expand(${
         template.direction ? this.buildWhereDirection(template.direction) : 'both'
       }('${template.relation}')) `;
     }
+
     if (_.size(optionalPaths) > 0) {
       return _.map(optionalPaths, path => {
         return `select ${relationString !== '' ? relationString : ''} from ( ${path} ) ${
           ownParams !== '' ? 'WHERE' + ownParams : ''
-        }`;
+        } ${ownOrderBy && template.relation ? 'ORDER BY ' + ownOrderBy : ''} ${ownPagination && template.relation ? ownPagination : ''}`;
       });
-    } else if (ownParams !== '' || !template.relation) {
+    } else if (ownParams !== '' || ownOrderBy || ownPagination || !template.relation) {
       return [
         `select ${relationString !== '' ? relationString : ''}  from \`${template.collection}\` ${
           ownParams !== '' ? 'WHERE' + ownParams : ''
-        }`,
+        } ${ownOrderBy && template.relation ? 'ORDER BY ' + ownOrderBy : ''} ${ownPagination && template.relation ? ownPagination : ''}`,
       ];
     }
     return null;

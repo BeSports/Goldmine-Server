@@ -94,7 +94,7 @@ var OrientDBQueryBuilder = function () {
 
           // Add statement
           var statementTemp = '\n          begin\n          ' + '\n          ' + _lodash2.default.join(_lodash2.default.map(whereStmts, function (whereStmt, i) {
-            return 'let $' + (i + 1) + ' = ' + whereStmt + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '');
+            return 'let $' + (i + 1) + ' = ' + whereStmt;
           }), ' ;') + '\n          ' + '\n          ' + (_lodash2.default.size(whereStmts) === 1 ? '' : 'let $inter = select intersect(' + _lodash2.default.join(_lodash2.default.times(_lodash2.default.size(whereStmts), function (i) {
             return '$' + (i + 1);
           }), ', ') + ')') + '\n          ' + '\n          let $result = select ' + selectStmt + ' from ' + (_lodash2.default.size(whereStmts) > 1 ? '$inter.intersect' : '$1') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '') + ';\n          commit\n          return $result\n          ';
@@ -120,9 +120,11 @@ var OrientDBQueryBuilder = function () {
 
       var paths = [];
       var ownParams = '';
+      var ownOrderBy = false;
+      var ownPagination = false;
       var optionalPaths = [];
       var relationString = '';
-      if (template.extend && template.extend instanceof Array && _lodash2.default.size(template.extend) > 0) {
+      if (template.extend && _lodash2.default.isArray(template.extend) && _lodash2.default.size(template.extend) > 0) {
         optionalPaths = _lodash2.default.flatten(_lodash2.default.filter(_lodash2.default.map(template.extend, function (ext) {
           return _this2.createWherePaths(ext);
         }), function (r) {
@@ -133,15 +135,20 @@ var OrientDBQueryBuilder = function () {
       if (template.params) {
         ownParams = this.buildObject(template.params, '');
       }
+      if (template.orderBy) {
+        ownOrderBy = this.buildOrderByStmt(template);
+        ownPagination = this.buildPaginationStmt(template);
+      }
       if (template.relation) {
         relationString = 'expand(' + (template.direction ? this.buildWhereDirection(template.direction) : 'both') + '(\'' + template.relation + '\')) ';
       }
+
       if (_lodash2.default.size(optionalPaths) > 0) {
         return _lodash2.default.map(optionalPaths, function (path) {
-          return 'select ' + (relationString !== '' ? relationString : '') + ' from ( ' + path + ' ) ' + (ownParams !== '' ? 'WHERE' + ownParams : '');
+          return 'select ' + (relationString !== '' ? relationString : '') + ' from ( ' + path + ' ) ' + (ownParams !== '' ? 'WHERE' + ownParams : '') + ' ' + (ownOrderBy && template.relation ? 'ORDER BY ' + ownOrderBy : '') + ' ' + (ownPagination && template.relation ? ownPagination : '');
         });
-      } else if (ownParams !== '' || !template.relation) {
-        return ['select ' + (relationString !== '' ? relationString : '') + '  from `' + template.collection + '` ' + (ownParams !== '' ? 'WHERE' + ownParams : '')];
+      } else if (ownParams !== '' || ownOrderBy || ownPagination || !template.relation) {
+        return ['select ' + (relationString !== '' ? relationString : '') + '  from `' + template.collection + '` ' + (ownParams !== '' ? 'WHERE' + ownParams : '') + ' ' + (ownOrderBy && template.relation ? 'ORDER BY ' + ownOrderBy : '') + ' ' + (ownPagination && template.relation ? ownPagination : '')];
       }
       return null;
     }
