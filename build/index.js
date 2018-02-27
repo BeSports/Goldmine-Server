@@ -340,7 +340,9 @@ var startQuerries = function () {
                       io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationNameWithParams = publicationNameWithParams;
                       io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationName = publicationName;
                       io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queries = queries;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
+                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = _lodash2.default.filter(params, function (value) {
+                        return !_lodash2.default.isBoolean(value);
+                      });
                       io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].templates = templates;
                       io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].executeQuery = _lodash2.default.throttle(_insertHandler2.default, 100, {
                         leading: false,

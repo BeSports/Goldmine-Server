@@ -299,7 +299,9 @@ const startQuerries = async (Config, publications) => {
             ].publicationNameWithParams = publicationNameWithParams;
             io.sockets.adapter.rooms[hash(room)].publicationName = publicationName;
             io.sockets.adapter.rooms[hash(room)].queries = queries;
-            io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
+            io.sockets.adapter.rooms[hash(room)].params = _.filter(params, value => {
+              return !_.isBoolean(value);
+            });
             io.sockets.adapter.rooms[hash(room)].templates = templates;
             io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
               leading: false,
