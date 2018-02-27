@@ -110,7 +110,9 @@ var liveQuery = function () {
                 return a;
               }
             }).on('live-insert', function (res) {
-              console.log('INSERTED', res.content['@class']);
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('INSERTED', res.content['@class']);
+              }
               global.counter.updates++;
 
               if (!doCache(omitter(res), res.cluster, res.position)) {
@@ -133,7 +135,9 @@ var liveQuery = function () {
               if (!received) {
                 received = true;
               }
-              console.log('UPDATED', res.content['@class']);
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('UPDATED', res.content['@class']);
+              }
               global.counter.updates++;
               var rid = (0, _helperFunctions.extractRid)(res);
               if (!rid) {
@@ -153,8 +157,9 @@ var liveQuery = function () {
                 room.room.executeQuery(io, db, room.room, room.hash, res.content['@class'], rid);
               });
             }).on('live-delete', function (res) {
-              console.log('DELETED', res.content['@class']);
-
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('DELETED', res.content['@class']);
+              }
               global.updates++;
               var rid = (0, _helperFunctions.extractRid)(res);
               var roomsWithTemplatesForInsert = _lodash2.default.filter(_lodash2.default.map(io.sockets.adapter.rooms, function (value, key) {

@@ -19,6 +19,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 let config;
 let db;
+global.roomHashesUpdating = [];
+global.roomHashesToUpdate = [];
 global.updates = 0;
 global.liveQueryTokens = [];
 global.objectCache = {};

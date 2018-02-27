@@ -8,8 +8,6 @@ var _defineProperty2 = require('babel-runtime/helpers/defineProperty');
 
 var _defineProperty3 = _interopRequireDefault(_defineProperty2);
 
-exports.default = insertHandler;
-
 var _lodash = require('lodash');
 
 var _lodash2 = _interopRequireDefault(_lodash);
@@ -34,7 +32,15 @@ var deepDifference = require('deep-diff');
  * @param insertedObject
  * @param cache
  */
-function insertHandler(io, db, room, roomHash) {
+
+var insertHandler = function insertHandler(io, db, room, roomHash) {
+  if (_lodash2.default.includes(global.roomHashesUpdating, room.hash)) {
+    if (!_lodash2.default.includes(global.roomHashesToUpdate, room.hash)) {
+      global.roomHashesToUpdate = _lodash2.default.concat(global.roomHashesToUpdate, room.hash);
+    }
+    return;
+  }
+  global.roomHashesUpdating = _lodash2.default.concat(global.roomHashesUpdating, room.hash);
   var t0 = performance.now();
   var resolver = new _OrientDbQueryResolver2.default(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(function (data) {
@@ -42,7 +48,10 @@ function insertHandler(io, db, room, roomHash) {
     _lodash2.default.set(global, 'counter.publicationsWithFullName.' + room.publicationNameWithParams + '.counter', _lodash2.default.get(global, 'counter.publicationsWithFullName.' + room.publicationNameWithParams + '.counter', 0) + 1);
     var t1 = performance.now();
 
-    global.counter.durations.push({ publicationName: room.publicationName, duration: _lodash2.default.round(t1 - t0) });
+    global.counter.durations.push({
+      publicationName: room.publicationName,
+      duration: _lodash2.default.round(t1 - t0)
+    });
 
     console.log('DB call triggered by ' + room.publicationNameWithParams + ': ' + (t1 - t0) + ' milliseconds');
     var convertedData = _lodash2.default.map(data, function (d) {
@@ -105,5 +114,16 @@ function insertHandler(io, db, room, roomHash) {
       }
       (0, _helperFunctions.emitResults)(io, roomHash, room, 'change', differences);
     }
+    global.roomHashesUpdating = _lodash2.default.filter(global.roomHashesUpdating, function (rH) {
+      return rH !== room.hash;
+    });
+    if (_lodash2.default.includes(global.roomHashesToUpdate, room.hash)) {
+      global.roomHashesToUpdate = _lodash2.default.filter(global.roomHashesToUpdate, function (rH) {
+        return rH !== room.hash;
+      });
+      insertHandler(io, db, room, room.hash);
+    }
   });
-}
+};
+
+exports.default = insertHandler;

@@ -1,9 +1,6 @@
 import _ from 'lodash';
 import Resolver from '../resolvers/OrientDbQueryResolver';
-import {
-  emitResults,
-  getParameteredIdsOfTemplate,
-} from './helperFunctions';
+import { emitResults, getParameteredIdsOfTemplate } from './helperFunctions';
 const { performance } = require('perf_hooks');
 const deepDifference = require('deep-diff');
 /**
@@ -14,7 +11,15 @@ const deepDifference = require('deep-diff');
  * @param insertedObject
  * @param cache
  */
-export default function insertHandler(io, db, room, roomHash) {
+
+const insertHandler = (io, db, room, roomHash) => {
+  if (_.includes(global.roomHashesUpdating, room.hash)) {
+    if (!_.includes(global.roomHashesToUpdate, room.hash)) {
+      global.roomHashesToUpdate = _.concat(global.roomHashesToUpdate, room.hash);
+    }
+    return;
+  }
+  global.roomHashesUpdating = _.concat(global.roomHashesUpdating, room.hash);
   const t0 = performance.now();
   const resolver = new Resolver(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
@@ -34,7 +39,10 @@ export default function insertHandler(io, db, room, roomHash) {
     );
     const t1 = performance.now();
 
-    global.counter.durations.push({publicationName: room.publicationName, duration: _.round(t1 - t0)});
+    global.counter.durations.push({
+      publicationName: room.publicationName,
+      duration: _.round(t1 - t0),
+    });
 
     console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
@@ -113,5 +121,16 @@ export default function insertHandler(io, db, room, roomHash) {
       }
       emitResults(io, roomHash, room, 'change', differences);
     }
+    global.roomHashesUpdating = _.filter(global.roomHashesUpdating, rH => {
+      return rH !== room.hash;
+    });
+    if (_.includes(global.roomHashesToUpdate, room.hash)) {
+      global.roomHashesToUpdate = _.filter(global.roomHashesToUpdate, rH => {
+        return rH !== room.hash;
+      });
+      insertHandler(io, db, room, room.hash);
+    }
   });
-}
+};
+
+export default insertHandler;

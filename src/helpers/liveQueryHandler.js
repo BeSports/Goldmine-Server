@@ -1,8 +1,5 @@
 import _ from 'lodash';
-import {
-  extractRid,
-  flattenExtend,
-} from './helperFunctions';
+import { extractRid, flattenExtend } from './helperFunctions';
 import shallowequal from 'shallowequal';
 
 const isVertexWithEdges = res => {
@@ -140,7 +137,9 @@ const liveQuery = async function(io, typer, shouldLog) {
       },
     })
     .on('live-insert', res => {
-      console.log('INSERTED', res.content['@class']);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('INSERTED', res.content['@class']);
+      }
       global.counter.updates++;
 
       if (!doCache(omitter(res), res.cluster, res.position)) {
@@ -168,7 +167,9 @@ const liveQuery = async function(io, typer, shouldLog) {
       if (!received) {
         received = true;
       }
-      console.log('UPDATED', res.content['@class']);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('UPDATED', res.content['@class']);
+      }
       global.counter.updates++;
       const rid = extractRid(res);
       if (!rid) {
@@ -198,8 +199,9 @@ const liveQuery = async function(io, typer, shouldLog) {
       });
     })
     .on('live-delete', res => {
-      console.log('DELETED', res.content['@class']);
-
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('DELETED', res.content['@class']);
+      }
       global.updates++;
       const rid = extractRid(res);
       let roomsWithTemplatesForInsert = _.filter(
