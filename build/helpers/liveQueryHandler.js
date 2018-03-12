@@ -53,7 +53,19 @@ var searchForMatchingRids = function searchForMatchingRids(rooms, insertedObject
   if (_lodash2.default.includes(insertedObject.content['@class'], '_')) {
     var edgeRelatedIds = [(0, _helperFunctions.extractRid)(insertedObject.content.in), (0, _helperFunctions.extractRid)(insertedObject.content.out)];
     var valuesToSearchForInParams = _lodash2.default.flatten([_lodash2.default.values(_lodash2.default.omit(_lodash2.default.get(global.objectCache, '[' + insertedObject.content.in.cluster + '][' + insertedObject.content.in.position + ']', {}), '@class')), _lodash2.default.values(_lodash2.default.omit(_lodash2.default.get(global.objectCache, '[' + insertedObject.content.out.cluster + '][' + insertedObject.content.out.position + ']', {}), '@class'))]);
+
     return _lodash2.default.filter(rooms, function (room) {
+      // console.log({
+      //   room: room.publicationNameWithParams,
+      //   isItTrue:
+      //     _.size(_.difference(_.values(room.params), valuesToSearchForInParams)) <
+      //     _.size(room.params),
+      //   difference: _.difference(_.values(room.params), valuesToSearchForInParams),
+      //   sizeOfDifference: _.size(_.difference(_.values(room.params), valuesToSearchForInParams)),
+      //   sizeToCompareTo: _.size(room.params),
+      //   roomparams: _.values(room.params),
+      //   valuesToSearchForInParams,
+      // });
       return _lodash2.default.difference(edgeRelatedIds, room.cache).length < 2 || _lodash2.default.size(_lodash2.default.difference(_lodash2.default.values(room.params), valuesToSearchForInParams)) < _lodash2.default.size(room.params) || _lodash2.default.size(_lodash2.default.filter(room.templates, function (template) {
         return _lodash2.default.has(template, 'limit') && _lodash2.default.has(template, 'orderBy') && !_lodash2.default.has(template, 'skipOrder');
       })) > 0;
@@ -128,6 +140,11 @@ var liveQuery = function () {
               // inserted an edge
               var roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(roomsWithMatchingRids, res.content['@class'], _lodash2.default.includes(res.content['@class'], '_'));
 
+              // console.log({
+              //   size: _.size(roomsWithShallowTemplatesForInsert),
+              //   deepTemplates: _.map(roomsWithShallowTemplatesForInsert, 'room.publicationNameWithParams'),
+              // });
+
               _lodash2.default.forEach(roomsWithShallowTemplatesForInsert, function (room) {
                 room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
               });
@@ -153,6 +170,11 @@ var liveQuery = function () {
 
               var roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(roomsWithShallowTemplatesForInsert, res.content['@class'], _lodash2.default.includes(res.content['@class'], '_'), res);
 
+              // console.log({
+              //   size: _.size(roomsWithDeepTemplatesForInsert),
+              //   deepTemplates: _.map(roomsWithDeepTemplatesForInsert, 'room.publicationNameWithParams'),
+              // });
+
               _lodash2.default.forEach(roomsWithDeepTemplatesForInsert, function (room) {
                 room.room.executeQuery(io, db, room.room, room.hash, res.content['@class'], rid);
               });
@@ -162,11 +184,20 @@ var liveQuery = function () {
               }
               global.updates++;
               var rid = (0, _helperFunctions.extractRid)(res);
-              var roomsWithTemplatesForInsert = _lodash2.default.filter(_lodash2.default.map(io.sockets.adapter.rooms, function (value, key) {
+
+              var roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res, true);
+
+              var roomsWithTemplatesForInsert = _lodash2.default.filter(_lodash2.default.map(roomsWithMatchingRids, function (value, key) {
                 return _lodash2.default.find((0, _helperFunctions.flattenExtend)(value.templates), [_lodash2.default.includes(res.content['@class'], '_') ? 'relation' : 'collection', res.content['@class']]) ? { room: value, hash: key } : null;
               }), function (x) {
                 return x !== null;
               });
+
+              // console.log({
+              //   size: _.size(roomsWithTemplatesForInsert),
+              //   deepTemplates: _.map(roomsWithTemplatesForInsert, 'room.publicationNameWithParams'),
+              // });
+
               _lodash2.default.forEach(roomsWithTemplatesForInsert, function (room) {
                 room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
               });

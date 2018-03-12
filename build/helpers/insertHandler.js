@@ -114,6 +114,11 @@ var insertHandler = function insertHandler(io, db, room, roomHash) {
       }
       (0, _helperFunctions.emitResults)(io, roomHash, room, 'change', differences);
     }
+    if (_lodash2.default.size(room.serverCache === 0)) {
+      room.params = _lodash2.default.merge(room.decoded, (0, _helperFunctions.extractParams)(room.publicationNameWithParams));
+    } else {
+      room.params = (0, _helperFunctions.extractParams)(room.publicationNameWithParams);
+    }
     global.roomHashesUpdating = _lodash2.default.filter(global.roomHashesUpdating, function (rH) {
       return rH !== room.hash;
     });

@@ -57,7 +57,19 @@ const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
         ),
       ),
     ]);
+
     return _.filter(rooms, room => {
+      // console.log({
+      //   room: room.publicationNameWithParams,
+      //   isItTrue:
+      //     _.size(_.difference(_.values(room.params), valuesToSearchForInParams)) <
+      //     _.size(room.params),
+      //   difference: _.difference(_.values(room.params), valuesToSearchForInParams),
+      //   sizeOfDifference: _.size(_.difference(_.values(room.params), valuesToSearchForInParams)),
+      //   sizeToCompareTo: _.size(room.params),
+      //   roomparams: _.values(room.params),
+      //   valuesToSearchForInParams,
+      // });
       return (
         _.difference(edgeRelatedIds, room.cache).length < 2 ||
         _.size(_.difference(_.values(room.params), valuesToSearchForInParams)) <
@@ -159,6 +171,11 @@ const liveQuery = async function(io, typer, shouldLog) {
         _.includes(res.content['@class'], '_'),
       );
 
+      // console.log({
+      //   size: _.size(roomsWithShallowTemplatesForInsert),
+      //   deepTemplates: _.map(roomsWithShallowTemplatesForInsert, 'room.publicationNameWithParams'),
+      // });
+
       _.forEach(roomsWithShallowTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
@@ -194,6 +211,11 @@ const liveQuery = async function(io, typer, shouldLog) {
         res,
       );
 
+      // console.log({
+      //   size: _.size(roomsWithDeepTemplatesForInsert),
+      //   deepTemplates: _.map(roomsWithDeepTemplatesForInsert, 'room.publicationNameWithParams'),
+      // });
+
       _.forEach(roomsWithDeepTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class'], rid);
       });
@@ -204,8 +226,11 @@ const liveQuery = async function(io, typer, shouldLog) {
       }
       global.updates++;
       const rid = extractRid(res);
+
+      const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res, true);
+
       let roomsWithTemplatesForInsert = _.filter(
-        _.map(io.sockets.adapter.rooms, (value, key) => {
+        _.map(roomsWithMatchingRids, (value, key) => {
           return _.find(flattenExtend(value.templates), [
             _.includes(res.content['@class'], '_') ? 'relation' : 'collection',
             res.content['@class'],
@@ -217,6 +242,12 @@ const liveQuery = async function(io, typer, shouldLog) {
           return x !== null;
         },
       );
+
+      // console.log({
+      //   size: _.size(roomsWithTemplatesForInsert),
+      //   deepTemplates: _.map(roomsWithTemplatesForInsert, 'room.publicationNameWithParams'),
+      // });
+
       _.forEach(roomsWithTemplatesForInsert, room => {
         room.room.executeQuery(io, db, room.room, room.hash, res.content['@class']);
       });
