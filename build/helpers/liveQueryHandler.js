@@ -76,8 +76,7 @@ var searchForMatchingRids = function searchForMatchingRids(rooms, insertedObject
       return _lodash2.default.includes(room.cache, ridToSearchFor);
     });
   }
-
-  return rooms;
+  return [];
 };
 
 var shallowSearchForMatchingRooms = function shallowSearchForMatchingRooms(rooms, collectionName, isEdgeCheck) {

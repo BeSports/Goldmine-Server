@@ -91,8 +91,7 @@ const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
       return _.includes(room.cache, ridToSearchFor);
     });
   }
-
-  return rooms;
+  return [];
 };
 
 const shallowSearchForMatchingRooms = (rooms, collectionName, isEdgeCheck) => {
