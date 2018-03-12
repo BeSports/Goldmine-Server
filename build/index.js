@@ -239,7 +239,7 @@ var startQuerries = function () {
                 }
 
                 // Convert all templates in the publication to db queries.
-                var queryBuilds = new _OrientDbQueryBuilder2.default(publication, params, socket.decoded).build();
+                var queryBuilds = new _OrientDbQueryBuilder2.default(publication, params, socket.decoded, publicationNameWithParams).build();
 
                 // Queries
                 var queries = queryBuilds.statements;

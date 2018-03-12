@@ -20,7 +20,6 @@ const insertHandler = (io, db, room, roomHash) => {
     return;
   }
   global.roomHashesUpdating = _.concat(global.roomHashesUpdating, room.hash);
-  const t0 = performance.now();
   const resolver = new Resolver(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(data => {
     _.set(
@@ -37,14 +36,6 @@ const insertHandler = (io, db, room, roomHash) => {
         0,
       ) + 1,
     );
-    const t1 = performance.now();
-
-    global.counter.durations.push({
-      publicationName: room.publicationName,
-      duration: _.round(t1 - t0),
-    });
-
-    console.log(`DB call triggered by ${room.publicationNameWithParams}: ${t1 - t0} milliseconds`);
     const convertedData = _.map(data, d => {
       return {
         collectionName: d.collectionName,

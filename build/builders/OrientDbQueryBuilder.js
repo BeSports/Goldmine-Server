@@ -24,11 +24,11 @@ var _OrderTypes2 = _interopRequireDefault(_OrderTypes);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var OrientDBQueryBuilder = function () {
-  function OrientDBQueryBuilder(templates, params, decoded) {
+  function OrientDBQueryBuilder(templates, params, decoded, publicationNameWithParams) {
     (0, _classCallCheck3.default)(this, OrientDBQueryBuilder);
 
     var templateTemp = void 0;
-
+    this.publicationNameWithParams = publicationNameWithParams;
     if (typeof templates === 'function') {
       templateTemp = templates(params);
     } else {
@@ -93,11 +93,11 @@ var OrientDBQueryBuilder = function () {
           }
 
           // Add statement
-          var statementTemp = '\n          begin\n          ' + '\n          ' + _lodash2.default.join(_lodash2.default.map(whereStmts, function (whereStmt, i) {
+          var statementTemp = '\n          begin \n          ' + '\n          ' + _lodash2.default.join(_lodash2.default.map(whereStmts, function (whereStmt, i) {
             return 'let $' + (i + 1) + ' = ' + whereStmt + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '');
           }), ' ;') + '\n          ' + '\n          ' + (_lodash2.default.size(whereStmts) === 1 ? '' : 'let $inter = select intersect(' + _lodash2.default.join(_lodash2.default.times(_lodash2.default.size(whereStmts), function (i) {
             return '$' + (i + 1);
-          }), ', ') + ')') + '\n          ' + '\n          let $result = select ' + selectStmt + ' from ' + (_lodash2.default.size(whereStmts) > 1 ? '$inter.intersect' : '$1') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '') + ';\n          commit\n          return $result\n          ';
+          }), ', ') + ')') + '\n          ' + '\n          let $result = select ' + selectStmt + ' from ' + (_lodash2.default.size(whereStmts) > 1 ? '$inter.intersect' : '$1') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '') + ';\n          commit\n          return $result\n          let $publicationName = \'' + (_this.publicationNameWithParams || '') + '\'\n          ';
 
           _lodash2.default.map(_this.tempParams, function (value, property) {
             statementTemp = _lodash2.default.replace(statementTemp, new RegExp(':goldmine' + property, 'g'), typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value));

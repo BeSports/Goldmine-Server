@@ -9,6 +9,14 @@ exports.default = function (config) {
   var server = new _orientjs2.default(config.server);
   var db = server.use(_lodash2.default.merge({ name: config.databaseName }, _lodash2.default.pick(config.server, ['username', 'password'])));
   global.db = db;
+  db.on('endQuery', function (obj) {
+    if (obj.input.query.indexOf('let $publicationName =') > 0) {
+      global.counter.durations.push({
+        publicationName: _lodash2.default.first(_lodash2.default.split(_lodash2.default.last(_lodash2.default.split(obj.input.query, 'let $publicationName = \'')), '?')),
+        duration: obj.perf.query
+      });
+    }
+  });
 
   _lodash2.default.times(dbLiveMax, function () {
     var db = new _orientjs2.default.ODatabase(Object.assign({ useToken: true }, _lodash2.default.merge(_lodash2.default.omit(config.server, 'pool'), { name: config.databaseName })));

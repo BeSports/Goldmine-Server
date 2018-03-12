@@ -2,9 +2,9 @@ import _ from 'lodash';
 import OrderTypes from '../enums/OrderTypes';
 
 export default class OrientDBQueryBuilder {
-  constructor(templates, params, decoded) {
+  constructor(templates, params, decoded, publicationNameWithParams) {
     let templateTemp;
-
+    this.publicationNameWithParams = publicationNameWithParams;
     if (typeof templates === 'function') {
       templateTemp = templates(params);
     } else {
@@ -70,7 +70,7 @@ export default class OrientDBQueryBuilder {
 
         // Add statement
         let statementTemp = `
-          begin
+          begin 
           ${/* insert the where clauses built before */ ''}
           ${_.join(
             _.map(whereStmts, (whereStmt, i) => {
@@ -97,6 +97,7 @@ export default class OrientDBQueryBuilder {
         } ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt ? paginationStmt : ''};
           commit
           return $result
+          let $publicationName = '${this.publicationNameWithParams || ''}'
           `;
 
         _.map(this.tempParams, function(value, property) {

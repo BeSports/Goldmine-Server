@@ -194,7 +194,7 @@ const startQuerries = async (Config, publications) => {
       }
 
       // Convert all templates in the publication to db queries.
-      const queryBuilds = new QueryBuilder(publication, params, socket.decoded).build();
+      const queryBuilds = new QueryBuilder(publication, params, socket.decoded, publicationNameWithParams).build();
 
       // Queries
       const queries = queryBuilds.statements;

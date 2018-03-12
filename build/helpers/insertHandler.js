@@ -41,19 +41,10 @@ var insertHandler = function insertHandler(io, db, room, roomHash) {
     return;
   }
   global.roomHashesUpdating = _lodash2.default.concat(global.roomHashesUpdating, room.hash);
-  var t0 = performance.now();
   var resolver = new _OrientDbQueryResolver2.default(db, room.templates, room.queries, {}, true);
   resolver.resolve(room.queryParams).then(function (data) {
     _lodash2.default.set(global, 'counter.publications.' + room.publicationName + '.counter', _lodash2.default.get(global, 'counter.publications.' + room.publicationName + '.counter', 0) + 1);
     _lodash2.default.set(global, 'counter.publicationsWithFullName.' + room.publicationNameWithParams + '.counter', _lodash2.default.get(global, 'counter.publicationsWithFullName.' + room.publicationNameWithParams + '.counter', 0) + 1);
-    var t1 = performance.now();
-
-    global.counter.durations.push({
-      publicationName: room.publicationName,
-      duration: _lodash2.default.round(t1 - t0)
-    });
-
-    console.log('DB call triggered by ' + room.publicationNameWithParams + ': ' + (t1 - t0) + ' milliseconds');
     var convertedData = _lodash2.default.map(data, function (d) {
       return {
         collectionName: d.collectionName,

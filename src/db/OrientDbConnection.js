@@ -28,6 +28,16 @@ export default function(config) {
     _.merge({ name: config.databaseName }, _.pick(config.server, ['username', 'password'])),
   );
   global.db = db;
+  db.on('endQuery', function(obj) {
+    if (obj.input.query.indexOf(`let $publicationName =`) > 0) {
+      global.counter.durations.push({
+        publicationName: _.first(
+          _.split(_.last(_.split(obj.input.query, `let $publicationName = \'`)), '?'),
+        ),
+        duration: obj.perf.query,
+      });
+    }
+  });
 
   _.times(dbLiveMax, () => {
     const db = new orientjs.ODatabase(
