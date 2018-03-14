@@ -181,6 +181,8 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildSelectStmt',
     value: function buildSelectStmt(template, parent) {
+      var _this4 = this;
+
       var res = '';
       //extends
       if (template.target !== undefined) {
@@ -199,7 +201,7 @@ var OrientDBQueryBuilder = function () {
         }
         if (template.edgeFields) {
           _lodash2.default.forEach(template.edgeFields, function (field) {
-            res += (template.fields === null ? '' : ', ') + ' ' + parent + 'bothE(\'' + template.relation + '\').' + field + ' AS `' + _lodash2.default.replace(template.target, '.', '§') + '\xA7' + field + '`';
+            res += (template.fields === null ? '' : ', ') + ' ' + parent + _this4.buildDirection(template.direction) + 'E(\'' + template.relation + '\').' + field + ' AS `' + _lodash2.default.replace(template.target, '.', '§') + '\xA7' + field + '`';
           });
         }
         // main class subscribed on
@@ -224,12 +226,12 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildObject',
     value: function buildObject(paramsObject, edge) {
-      var _this4 = this;
+      var _this5 = this;
 
       var objectRes = '(';
       var counter = 0;
       _lodash2.default.forEach(paramsObject, function (value, property) {
-        objectRes += _this4.buildProperty(value, property, edge) + (_lodash2.default.size(paramsObject) - 1 > counter ? ' AND' : ' )');
+        objectRes += _this5.buildProperty(value, property, edge) + (_lodash2.default.size(paramsObject) - 1 > counter ? ' AND' : ' )');
         counter++;
       });
       return objectRes;
@@ -237,12 +239,12 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildProperty',
     value: function buildProperty(value, property, edge) {
-      var _this5 = this;
+      var _this6 = this;
 
       if (value instanceof Array) {
         var res = '(';
         _lodash2.default.forEach(value, function (v, i) {
-          res += _this5.buildPropertyObject(property, v, edge) + (_lodash2.default.size(value) - 1 > i ? ' OR' : ' )');
+          res += _this6.buildPropertyObject(property, v, edge) + (_lodash2.default.size(value) - 1 > i ? ' OR' : ' )');
         });
         return res;
       }

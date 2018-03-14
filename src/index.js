@@ -16,7 +16,11 @@ import hash from 'object-hash';
 
 const app = new Express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  transports: ['websocket'],
+  pingInterval: 10000,
+  pingTimeout: 5000,
+});
 let config;
 let db;
 global.roomHashesUpdating = [];
@@ -141,7 +145,18 @@ const startQuerries = async (Config, publications) => {
   // ---------------------------------------------------------------------------------------------------------------------
   // ---------------------------------------------------------------------------------------------------------------------
 
-  io.sockets.on('connection', socket => {
+  io.sockets.on('connection', async socket => {
+    if (Config.auth) {
+      const authentication = await Config.auth.validator(socket.handshake.query);
+
+      if (!authentication) {
+        socket.disconnect('Failed to authenticate token ', socket.id);
+      } else {
+        socket.decoded = authentication;
+        socket.emit('authenticated');
+      }
+    }
+
     connections[socket.id] = [];
 
     if (Config && Config.auth && Config.auth.force === true) {
@@ -194,7 +209,12 @@ const startQuerries = async (Config, publications) => {
       }
 
       // Convert all templates in the publication to db queries.
-      const queryBuilds = new QueryBuilder(publication, params, socket.decoded, publicationNameWithParams).build();
+      const queryBuilds = new QueryBuilder(
+        publication,
+        params,
+        socket.decoded,
+        publicationNameWithParams,
+      ).build();
 
       // Queries
       const queries = queryBuilds.statements;
@@ -349,23 +369,6 @@ const startQuerries = async (Config, publications) => {
         socket.leave(hash(roomToRemove));
       }
     });
-
-    // ----------------------------------------------------
-    // ----------------------------------------------------
-
-    if (Config.auth) {
-      socket.on('authenticate', async data => {
-        const authentication = await Config.auth.validator(data);
-        if (!authentication) {
-          socket.disconnect('Failed to authenticate token ', socket.id);
-        } else {
-          socket.decoded = authentication;
-        }
-      });
-    }
-
-    // -----------------------------------------------------
-    // -----------------------------------------------------
 
     socket.on('disconnect', () => {
       if (_.get(Config, 'logging.connections', false)) {

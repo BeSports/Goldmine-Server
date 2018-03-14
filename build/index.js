@@ -58,7 +58,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var app = new _express2.default();
 var server = _http2.default.createServer(app);
-var io = new _socket2.default(server);
+var io = new _socket2.default(server, {
+  transports: ['websocket'],
+  pingInterval: 10000,
+  pingTimeout: 5000
+});
 var config = void 0;
 var db = void 0;
 global.roomHashesUpdating = [];
@@ -186,250 +190,249 @@ var startQuerries = function () {
             // ---------------------------------------------------------------------------------------------------------------------
             // ---------------------------------------------------------------------------------------------------------------------
 
-            io.sockets.on('connection', function (socket) {
-              connections[socket.id] = [];
+            io.sockets.on('connection', function () {
+              var _ref2 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee(socket) {
+                var authentication;
+                return _regenerator2.default.wrap(function _callee$(_context) {
+                  while (1) {
+                    switch (_context.prev = _context.next) {
+                      case 0:
+                        if (!Config.auth) {
+                          _context.next = 5;
+                          break;
+                        }
 
-              if (Config && Config.auth && Config.auth.force === true) {
-                setTimeout(function () {
-                  if (!socket.decoded) {
-                    if (_lodash2.default.get(Config, 'logging.authentication', false)) {
-                      console.log('SOCKET Failed to authorize ', socket.id);
-                    }
-                    socket.disconnect('Authentication is needed to connect to this websocket');
-                  }
-                }, Config.auth.time || 60000);
-              }
-              if (_lodash2.default.get(Config, 'logging.connections', false)) {
-                console.log('CLIENT CONNECTED:', socket.id);
-              }
+                        _context.next = 3;
+                        return Config.auth.validator(socket.handshake.query);
 
-              socket.on('pingConnection', function (data) {
-                socket.emit('pongConnection', data);
-              });
+                      case 3:
+                        authentication = _context.sent;
 
-              // -----------------------------------------------------
-              // -----------------------------------------------------
 
-              socket.on('subscribe', function (payload) {
-                if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
-                  console.log('NEW SUBSCRIPTION:', payload.publicationNameWithParams);
-                }
+                        if (!authentication) {
+                          socket.disconnect('Failed to authenticate token ', socket.id);
+                        } else {
+                          socket.decoded = authentication;
+                          socket.emit('authenticated');
+                        }
 
-                var publicationName = (0, _helperFunctions.extractPublicationName)(payload.publicationNameWithParams);
+                      case 5:
 
-                // Check if publication exists.
-                if (!publications.hasOwnProperty(publicationName)) {
-                  if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
-                    console.log('GoldmineJS: Couldn\'t find the publication: \'' + publicationName + '\'');
-                  }
-                  return;
-                }
-                var publicationNameWithParams = payload.publicationNameWithParams;
+                        connections[socket.id] = [];
 
-                // publicationObject
-                var publication = publications[publicationName];
+                        if (Config && Config.auth && Config.auth.force === true) {
+                          setTimeout(function () {
+                            if (!socket.decoded) {
+                              if (_lodash2.default.get(Config, 'logging.authentication', false)) {
+                                console.log('SOCKET Failed to authorize ', socket.id);
+                              }
+                              socket.disconnect('Authentication is needed to connect to this websocket');
+                            }
+                          }, Config.auth.time || 60000);
+                        }
+                        if (_lodash2.default.get(Config, 'logging.connections', false)) {
+                          console.log('CLIENT CONNECTED:', socket.id);
+                        }
 
-                // Build params for subscription
-                var params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
-                // Apply client params over server params only when client has priority
-                if (_lodash2.default.find(publication, ['priority', 'client'])) {
-                  params = _lodash2.default.merge(socket.decoded, params);
-                } else {
-                  params = _lodash2.default.merge(params, socket.decoded);
-                }
-
-                // Convert all templates in the publication to db queries.
-                var queryBuilds = new _OrientDbQueryBuilder2.default(publication, params, socket.decoded, publicationNameWithParams).build();
-
-                // Queries
-                var queries = queryBuilds.statements;
-
-                //templates
-                var templates = queryBuilds.templates;
-
-                // Params for the query
-                var queryParams = queryBuilds.statementParams;
-
-                var room = {
-                  queries: queries,
-                  queryParams: queryParams,
-                  publicationNameWithParams: publicationNameWithParams
-                };
-
-                // room already exists
-                if (_lodash2.default.has(io.sockets.adapter.rooms, (0, _objectHash2.default)(room))) {
-                  //emits the serverdata to the new member of the room without refetching
-                  socket.emit(payload.publicationNameWithParams, {
-                    type: _OperationTypes2.default.INIT,
-                    data: io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].serverCache,
-                    publicationNameWithParams: publicationNameWithParams
-                  });
-
-                  if (payload.isReactive) {
-                    // Add publication to client's personal placeholder.
-                    if (connections[socket.id]) {
-                      connections[socket.id].push(room);
-                    }
-
-                    // Add socket to publication.
-                    socket.join((0, _objectHash2.default)(room));
-                    if (_lodash2.default.get(Config, 'logging.publications', false)) {
-                      console.log('joined', (0, _objectHash2.default)(room));
-                    }
-                  }
-
-                  return;
-                }
-
-                if (_lodash2.default.get(Config, 'logging.publications', false)) {
-                  console.log('-----------------------------------------------');
-                  console.log('PUBLICATION: ' + publicationNameWithParams);
-                  console.log('QUERIES:');
-                  console.log(queries);
-                  console.log(queryParams);
-                  console.log('-----------------------------------------------');
-                }
-
-                // Resolve the initial queries and send the responses.
-                new _OrientDbQueryResolver2.default(db, templates, queries, socket.decoded).resolve(queryParams).then(function (data) {
-                  var sendeableData = _lodash2.default.map(data, function (d) {
-                    return {
-                      collectionName: d.collectionName,
-                      data: _lodash2.default.map(d.data, function (da) {
-                        _lodash2.default.unset(da, '@version');
-                        _lodash2.default.unset(da, '@class');
-                        _lodash2.default.unset(da, '@rid');
-                        return _lodash2.default.assign(da, (0, _defineProperty3.default)({}, '__publicationNameWithParams', [publicationNameWithParams]));
-                      })
-                    };
-                  });
-                  // Build payload.
-                  var responsePayload = {
-                    type: _OperationTypes2.default.INIT,
-                    data: sendeableData,
-                    publicationNameWithParams: publicationNameWithParams
-                  };
-
-                  // Flattens all cache to a single array and return the unique ids
-                  var cache = _lodash2.default.filter(_lodash2.default.uniq(_lodash2.default.flatten(_lodash2.default.map(data, 'cache'))), function (c) {
-                    return !_lodash2.default.startsWith(c, '#-2');
-                  });
-
-                  // Send data to client who subscribed.
-                  if (_lodash2.default.get(Config, 'logging.publications', false)) {
-                    console.log('emitting');
-                  }
-                  socket.emit(payload.publicationNameWithParams, responsePayload);
-                  if (payload.isReactive) {
-                    // Add publication to client's personal placeholder.
-                    if (connections[socket.id]) {
-                      connections[socket.id].push(room);
-                    }
-                    // Add socket to publication.
-                    socket.join((0, _objectHash2.default)(room));
-                    // }
-
-                    if (_lodash2.default.get(Config, 'logging.publications', false)) {
-                      console.log('joined', (0, _objectHash2.default)(room));
-                    }
-                    if (io.sockets.adapter.rooms[(0, _objectHash2.default)(room)]) {
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].cache = cache;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].decoded = socket.decoded;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].hash = (0, _objectHash2.default)(room);
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].serverCache = sendeableData;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queryParams = queryParams;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationNameWithParams = publicationNameWithParams;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationName = publicationName;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queries = queries;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].templates = templates;
-                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].executeQuery = _lodash2.default.throttle(_insertHandler2.default, 100, {
-                        leading: false,
-                        trailing: true
-                      });
-                      if (_lodash2.default.size(cache) === 0) {
-                        (0, _helperFunctions.getParameteredIdsOfTemplate)(templates, params, socket.decoded).then(function (value) {
-                          if (io.sockets.adapter.rooms[(0, _objectHash2.default)(room)]) {
-                            io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].cache = value;
-                            io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = params;
-                          }
+                        socket.on('pingConnection', function (data) {
+                          socket.emit('pongConnection', data);
                         });
-                      }
-                    }
-                  }
-                });
-              });
 
-              // -----------------------------------------------------
-              // -----------------------------------------------------
+                        // -----------------------------------------------------
+                        // -----------------------------------------------------
 
-              socket.on('unsubscribe', function (payload) {
-                if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
-                  console.log('REMOVING SUBSCRIPTION:', payload.publicationNameWithParams);
-                }
+                        socket.on('subscribe', function (payload) {
+                          if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
+                            console.log('NEW SUBSCRIPTION:', payload.publicationNameWithParams);
+                          }
 
-                var publicationName = (0, _helperFunctions.extractPublicationName)(payload.publicationNameWithParams);
+                          var publicationName = (0, _helperFunctions.extractPublicationName)(payload.publicationNameWithParams);
 
-                // Check if room exists.
-                if (!publications.hasOwnProperty(publicationName)) {
-                  return;
-                }
+                          // Check if publication exists.
+                          if (!publications.hasOwnProperty(publicationName)) {
+                            if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
+                              console.log('GoldmineJS: Couldn\'t find the publication: \'' + publicationName + '\'');
+                            }
+                            return;
+                          }
+                          var publicationNameWithParams = payload.publicationNameWithParams;
 
-                var roomToRemove = _lodash2.default.first(_lodash2.default.pullAt(connections[socket.id], _lodash2.default.findIndex(connections[socket.id], ['publicationNameWithParams', payload.publicationNameWithParams])));
+                          // publicationObject
+                          var publication = publications[publicationName];
 
-                // Remove socket from socket.io publication room.
-                if (roomToRemove) {
-                  socket.leave((0, _objectHash2.default)(roomToRemove));
-                }
-              });
+                          // Build params for subscription
+                          var params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
+                          // Apply client params over server params only when client has priority
+                          if (_lodash2.default.find(publication, ['priority', 'client'])) {
+                            params = _lodash2.default.merge(socket.decoded, params);
+                          } else {
+                            params = _lodash2.default.merge(params, socket.decoded);
+                          }
 
-              // ----------------------------------------------------
-              // ----------------------------------------------------
+                          // Convert all templates in the publication to db queries.
+                          var queryBuilds = new _OrientDbQueryBuilder2.default(publication, params, socket.decoded, publicationNameWithParams).build();
 
-              if (Config.auth) {
-                socket.on('authenticate', function () {
-                  var _ref2 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee(data) {
-                    var authentication;
-                    return _regenerator2.default.wrap(function _callee$(_context) {
-                      while (1) {
-                        switch (_context.prev = _context.next) {
-                          case 0:
-                            _context.next = 2;
-                            return Config.auth.validator(data);
+                          // Queries
+                          var queries = queryBuilds.statements;
 
-                          case 2:
-                            authentication = _context.sent;
+                          //templates
+                          var templates = queryBuilds.templates;
 
-                            if (!authentication) {
-                              socket.disconnect('Failed to authenticate token ', socket.id);
-                            } else {
-                              socket.decoded = authentication;
+                          // Params for the query
+                          var queryParams = queryBuilds.statementParams;
+
+                          var room = {
+                            queries: queries,
+                            queryParams: queryParams,
+                            publicationNameWithParams: publicationNameWithParams
+                          };
+
+                          // room already exists
+                          if (_lodash2.default.has(io.sockets.adapter.rooms, (0, _objectHash2.default)(room))) {
+                            //emits the serverdata to the new member of the room without refetching
+                            socket.emit(payload.publicationNameWithParams, {
+                              type: _OperationTypes2.default.INIT,
+                              data: io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].serverCache,
+                              publicationNameWithParams: publicationNameWithParams
+                            });
+
+                            if (payload.isReactive) {
+                              // Add publication to client's personal placeholder.
+                              if (connections[socket.id]) {
+                                connections[socket.id].push(room);
+                              }
+
+                              // Add socket to publication.
+                              socket.join((0, _objectHash2.default)(room));
+                              if (_lodash2.default.get(Config, 'logging.publications', false)) {
+                                console.log('joined', (0, _objectHash2.default)(room));
+                              }
                             }
 
-                          case 4:
-                          case 'end':
-                            return _context.stop();
-                        }
-                      }
-                    }, _callee, undefined);
-                  }));
+                            return;
+                          }
 
-                  return function (_x3) {
-                    return _ref2.apply(this, arguments);
-                  };
-                }());
-              }
+                          if (_lodash2.default.get(Config, 'logging.publications', false)) {
+                            console.log('-----------------------------------------------');
+                            console.log('PUBLICATION: ' + publicationNameWithParams);
+                            console.log('QUERIES:');
+                            console.log(queries);
+                            console.log(queryParams);
+                            console.log('-----------------------------------------------');
+                          }
 
-              // -----------------------------------------------------
-              // -----------------------------------------------------
+                          // Resolve the initial queries and send the responses.
+                          new _OrientDbQueryResolver2.default(db, templates, queries, socket.decoded).resolve(queryParams).then(function (data) {
+                            var sendeableData = _lodash2.default.map(data, function (d) {
+                              return {
+                                collectionName: d.collectionName,
+                                data: _lodash2.default.map(d.data, function (da) {
+                                  _lodash2.default.unset(da, '@version');
+                                  _lodash2.default.unset(da, '@class');
+                                  _lodash2.default.unset(da, '@rid');
+                                  return _lodash2.default.assign(da, (0, _defineProperty3.default)({}, '__publicationNameWithParams', [publicationNameWithParams]));
+                                })
+                              };
+                            });
+                            // Build payload.
+                            var responsePayload = {
+                              type: _OperationTypes2.default.INIT,
+                              data: sendeableData,
+                              publicationNameWithParams: publicationNameWithParams
+                            };
 
-              socket.on('disconnect', function () {
-                if (_lodash2.default.get(Config, 'logging.connections', false)) {
-                  console.log('CLIENT DISCONNECTED:', socket.id);
-                }
-                delete connections[socket.id];
-              });
-            });
+                            // Flattens all cache to a single array and return the unique ids
+                            var cache = _lodash2.default.filter(_lodash2.default.uniq(_lodash2.default.flatten(_lodash2.default.map(data, 'cache'))), function (c) {
+                              return !_lodash2.default.startsWith(c, '#-2');
+                            });
+
+                            // Send data to client who subscribed.
+                            if (_lodash2.default.get(Config, 'logging.publications', false)) {
+                              console.log('emitting');
+                            }
+                            socket.emit(payload.publicationNameWithParams, responsePayload);
+                            if (payload.isReactive) {
+                              // Add publication to client's personal placeholder.
+                              if (connections[socket.id]) {
+                                connections[socket.id].push(room);
+                              }
+                              // Add socket to publication.
+                              socket.join((0, _objectHash2.default)(room));
+                              // }
+
+                              if (_lodash2.default.get(Config, 'logging.publications', false)) {
+                                console.log('joined', (0, _objectHash2.default)(room));
+                              }
+                              if (io.sockets.adapter.rooms[(0, _objectHash2.default)(room)]) {
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].cache = cache;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].decoded = socket.decoded;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].hash = (0, _objectHash2.default)(room);
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].serverCache = sendeableData;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queryParams = queryParams;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationNameWithParams = publicationNameWithParams;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationName = publicationName;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queries = queries;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].templates = templates;
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].executeQuery = _lodash2.default.throttle(_insertHandler2.default, 100, {
+                                  leading: false,
+                                  trailing: true
+                                });
+                                if (_lodash2.default.size(cache) === 0) {
+                                  (0, _helperFunctions.getParameteredIdsOfTemplate)(templates, params, socket.decoded).then(function (value) {
+                                    if (io.sockets.adapter.rooms[(0, _objectHash2.default)(room)]) {
+                                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].cache = value;
+                                      io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = params;
+                                    }
+                                  });
+                                }
+                              }
+                            }
+                          });
+                        });
+
+                        // -----------------------------------------------------
+                        // -----------------------------------------------------
+
+                        socket.on('unsubscribe', function (payload) {
+                          if (_lodash2.default.get(Config, 'logging.subscriptions', false)) {
+                            console.log('REMOVING SUBSCRIPTION:', payload.publicationNameWithParams);
+                          }
+
+                          var publicationName = (0, _helperFunctions.extractPublicationName)(payload.publicationNameWithParams);
+
+                          // Check if room exists.
+                          if (!publications.hasOwnProperty(publicationName)) {
+                            return;
+                          }
+
+                          var roomToRemove = _lodash2.default.first(_lodash2.default.pullAt(connections[socket.id], _lodash2.default.findIndex(connections[socket.id], ['publicationNameWithParams', payload.publicationNameWithParams])));
+
+                          // Remove socket from socket.io publication room.
+                          if (roomToRemove) {
+                            socket.leave((0, _objectHash2.default)(roomToRemove));
+                          }
+                        });
+
+                        socket.on('disconnect', function () {
+                          if (_lodash2.default.get(Config, 'logging.connections', false)) {
+                            console.log('CLIENT DISCONNECTED:', socket.id);
+                          }
+                          delete connections[socket.id];
+                        });
+
+                      case 12:
+                      case 'end':
+                        return _context.stop();
+                    }
+                  }
+                }, _callee, undefined);
+              }));
+
+              return function (_x3) {
+                return _ref2.apply(this, arguments);
+              };
+            }());
 
             // ---------------------------------------------------------------------------------------------------------------------
             // ---------------------------------------------------------------------------------------------------------------------
