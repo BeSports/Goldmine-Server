@@ -417,6 +417,9 @@ The function has another really important functionality which is to return varia
 Usually you would store a userId or a permission in the connection.
 These veriables can be used like any other variables received from the client, the server variables will override a client variable if they both are named in the same manner.
 
+## Known issues	
+- vertex inserts are ignored unless you have an orderBy/limit specified.
+
 ## Contributors
 
 - [Jasper Dansercoer](http://www.jdansercoer.be/)
