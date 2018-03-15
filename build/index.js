@@ -59,9 +59,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var app = new _express2.default();
 var server = _http2.default.createServer(app);
 var io = new _socket2.default(server, {
-  transports: ['websocket'],
-  pingInterval: 10000,
-  pingTimeout: 5000
+  pingInterval: 5000,
+  pingTimeout: 2000
 });
 var config = void 0;
 var db = void 0;
@@ -372,7 +371,9 @@ var startQuerries = function () {
                                 io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationNameWithParams = publicationNameWithParams;
                                 io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].publicationName = publicationName;
                                 io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].queries = queries;
-                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = (0, _helperFunctions.extractParams)(publicationNameWithParams);
+                                io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].params = _lodash2.default.filter(params, function (a) {
+                                  return !_lodash2.default.isBoolean(a);
+                                });
                                 io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].templates = templates;
                                 io.sockets.adapter.rooms[(0, _objectHash2.default)(room)].executeQuery = _lodash2.default.throttle(_insertHandler2.default, 100, {
                                   leading: false,

@@ -112,11 +112,6 @@ const insertHandler = (io, db, room, roomHash) => {
       }
       emitResults(io, roomHash, room, 'change', differences);
     }
-    if (_.size(room.serverCache === 0)) {
-      room.params = _.merge(room.decoded, extractParams(room.publicationNameWithParams));
-    } else {
-      room.params = extractParams(room.publicationNameWithParams);
-    }
     global.roomHashesUpdating = _.filter(global.roomHashesUpdating, rH => {
       return rH !== room.hash;
     });

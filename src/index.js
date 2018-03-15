@@ -17,9 +17,8 @@ import hash from 'object-hash';
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  transports: ['websocket'],
-  pingInterval: 10000,
-  pingTimeout: 5000,
+  pingInterval: 5000,
+  pingTimeout: 2000,
 });
 let config;
 let db;
@@ -320,7 +319,9 @@ const startQuerries = async (Config, publications) => {
             ].publicationNameWithParams = publicationNameWithParams;
             io.sockets.adapter.rooms[hash(room)].publicationName = publicationName;
             io.sockets.adapter.rooms[hash(room)].queries = queries;
-            io.sockets.adapter.rooms[hash(room)].params = extractParams(publicationNameWithParams);
+            io.sockets.adapter.rooms[hash(room)].params = _.filter(params, a => {
+              return !_.isBoolean(a);
+            });
             io.sockets.adapter.rooms[hash(room)].templates = templates;
             io.sockets.adapter.rooms[hash(room)].executeQuery = _.throttle(insertHandler, 100, {
               leading: false,
