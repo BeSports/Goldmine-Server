@@ -59,8 +59,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var app = new _express2.default();
 var server = _http2.default.createServer(app);
 var io = new _socket2.default(server, {
-  pingInterval: 5000,
-  pingTimeout: 2000
+  pingInterval: 10000,
+  pingTimeout: 5000
 });
 var config = void 0;
 var db = void 0;

@@ -17,8 +17,8 @@ import hash from 'object-hash';
 const app = new Express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  pingInterval: 5000,
-  pingTimeout: 2000,
+  pingInterval: 10000,
+  pingTimeout: 5000,
 });
 let config;
 let db;
