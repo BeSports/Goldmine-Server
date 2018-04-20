@@ -73,7 +73,7 @@ function extractParams(publicationNameWithParams) {
       if (!(value instanceof Array) && isNaN(value) && value.startsWith('#')) {
         params[key] = _orientjs2.default.RID(value);
       } else {
-        params[key] = isNaN(value) ? value : Number(value);
+        params[key] = isNaN(value) ? value : _lodash2.default.first(item.substr(index + 1)) === '"' ? value : Number(value);
       }
     });
   } catch (err) {

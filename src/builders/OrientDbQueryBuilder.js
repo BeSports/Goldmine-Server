@@ -74,9 +74,7 @@ export default class OrientDBQueryBuilder {
           ${/* insert the where clauses built before */ ''}
           ${_.join(
             _.map(whereStmts, (whereStmt, i) => {
-              return `let $${i + 1} = ${whereStmt} ${
-                orderByStmt ? 'ORDER BY ' + orderByStmt : ''
-              } ${paginationStmt ? paginationStmt : ''}`;
+              return `let $${i + 1} = ${whereStmt} `;
             }),
             ' ;',
           )}
