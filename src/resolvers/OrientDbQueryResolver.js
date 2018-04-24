@@ -50,7 +50,7 @@ export default class OrientDBQueryResolver {
       })
       .catch(err => {
         console.log(this.queries);
-        console.error({err, queries: this.queries});
+        console.error({ err, queries: this.queries });
       });
   }
 
@@ -65,6 +65,10 @@ export default class OrientDBQueryResolver {
       }
 
       _.forEach(obj, (value, key) => {
+        let convertedValue = value;
+        if (key.includes('@rid') && value instanceof Array) {
+          convertedValue = _.map(value, toString);
+        }
         if (
           key.startsWith('in_') ||
           key.startsWith('out_') ||
@@ -75,17 +79,16 @@ export default class OrientDBQueryResolver {
           if (key.startsWith('in_') || key.startsWith('out_')) {
             return;
           }
-          formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
+          formattedObject[key] = key.startsWith('_id') ? convertedValue.toString() : convertedValue;
 
           if (key.startsWith('rid')) {
-            cache.push(value.toString());
+            cache.push(convertedValue.toString());
           }
         } else if (_.size(_.get(template, 'extend')) > 0) {
           setCache(formattedObject);
           const index = key.indexOf('§');
           const target = key.substr(0, index);
           const property = key.substr(index + 1);
-
           let tempExtend = '';
 
           _.forEach(flattenExtend(template.extend), extend => {
@@ -104,11 +107,11 @@ export default class OrientDBQueryResolver {
               if (property === '@rid') {
                 cache.push(item.toString());
               }
+
               if (formattedObject[target][key] === undefined) {
                 formattedObject[target][key] = {};
               }
-
-              formattedObject[target][key][property] = property.startsWith('@rid')
+              formattedObject[target][key][property] = property.includes('@rid')
                 ? item.toString()
                 : item;
             });
@@ -116,7 +119,9 @@ export default class OrientDBQueryResolver {
             _.set(
               formattedObject,
               `${target}.${_.replace(property, '§', '.')}`,
-              value instanceof Array && _.size(value) === 1 ? value[0] : value,
+              value instanceof Array && _.size(value) === 1
+                ? property.includes('@rid') ? value[0].toString() : value[0]
+                : property.includes('@rid') ? value.toString() : value,
             );
           }
         }

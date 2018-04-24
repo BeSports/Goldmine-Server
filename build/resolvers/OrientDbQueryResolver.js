@@ -88,21 +88,24 @@ var OrientDBQueryResolver = function () {
         }
 
         _lodash2.default.forEach(obj, function (value, key) {
+          var convertedValue = value;
+          if (key.includes('@rid') && value instanceof Array) {
+            convertedValue = _lodash2.default.map(value, toString);
+          }
           if (key.startsWith('in_') || key.startsWith('out_') || !key.includes('§') || key.startsWith('_') || key.startsWith('rid')) {
             if (key.startsWith('in_') || key.startsWith('out_')) {
               return;
             }
-            formattedObject[key] = key.startsWith('_id') ? value.toString() : value;
+            formattedObject[key] = key.startsWith('_id') ? convertedValue.toString() : convertedValue;
 
             if (key.startsWith('rid')) {
-              cache.push(value.toString());
+              cache.push(convertedValue.toString());
             }
           } else if (_lodash2.default.size(_lodash2.default.get(template, 'extend')) > 0) {
             setCache(formattedObject);
             var index = key.indexOf('§');
             var target = key.substr(0, index);
             var property = key.substr(index + 1);
-
             var tempExtend = '';
 
             _lodash2.default.forEach((0, _helperFunctions.flattenExtend)(template.extend), function (extend) {
@@ -121,14 +124,14 @@ var OrientDBQueryResolver = function () {
                 if (property === '@rid') {
                   cache.push(item.toString());
                 }
+
                 if (formattedObject[target][key] === undefined) {
                   formattedObject[target][key] = {};
                 }
-
-                formattedObject[target][key][property] = property.startsWith('@rid') ? item.toString() : item;
+                formattedObject[target][key][property] = property.includes('@rid') ? item.toString() : item;
               });
             } else {
-              _lodash2.default.set(formattedObject, target + '.' + _lodash2.default.replace(property, '§', '.'), value instanceof Array && _lodash2.default.size(value) === 1 ? value[0] : value);
+              _lodash2.default.set(formattedObject, target + '.' + _lodash2.default.replace(property, '§', '.'), value instanceof Array && _lodash2.default.size(value) === 1 ? property.includes('@rid') ? value[0].toString() : value[0] : property.includes('@rid') ? value.toString() : value);
             }
           }
         });
