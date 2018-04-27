@@ -72,6 +72,7 @@ var OrientDBQueryBuilder = function () {
           var whereStmts = null;
           var orderByStmt = null;
           var paginationStmt = null;
+          var whereSlowAddition = '';
 
           // TOP LEVEL
           // select statement
@@ -90,19 +91,29 @@ var OrientDBQueryBuilder = function () {
           if (template.extend) {
             var extendFields = _this.buildExtends(template.extend, '');
             selectStmt += (_lodash2.default.size(_lodash2.default.trim(selectStmt)) !== 0 && _lodash2.default.size(_lodash2.default.trim(extendFields.selectStmt)) !== 0 ? ', ' : ' ') + ' ' + extendFields.selectStmt;
-          }
 
+            if (template.new) {
+              var extendWhereFields = _this.createSlowWheres(template.extend, '');
+              whereSlowAddition = extendWhereFields;
+            }
+          }
+          var statementTemp = '';
+
+          var hasRootParams = _lodash2.default.has(template, 'params');
           // Add statement
-          var statementTemp = '\n          begin \n          ' + '\n          ' + _lodash2.default.join(_lodash2.default.map(whereStmts, function (whereStmt, i) {
-            return 'let $' + (i + 1) + ' = ' + whereStmt + ' ';
-          }), ' ;') + '\n          ' + '\n          ' + (_lodash2.default.size(whereStmts) === 1 ? '' : 'let $inter = select intersect(' + _lodash2.default.join(_lodash2.default.times(_lodash2.default.size(whereStmts), function (i) {
-            return '$' + (i + 1);
-          }), ', ') + ')') + '\n          ' + '\n          let $result = select ' + selectStmt + ' from ' + (_lodash2.default.size(whereStmts) > 1 ? '$inter.intersect' : '$1') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt ? paginationStmt : '') + ';\n          commit\n          return $result\n          let $publicationName = \'' + (_this.publicationNameWithParams || '') + '\'\n          ';
+          if (!template.new) {
+            statementTemp = '\n          begin \n          ' + '\n          ' + _lodash2.default.join(_lodash2.default.map(whereStmts, function (whereStmt, i) {
+              return 'let $' + (i + 1) + ' = ' + whereStmt + ' ';
+            }), ' ;') + '\n          ' + '\n          ' + (_lodash2.default.size(whereStmts) === 1 ? '' : 'let $inter = select intersect(' + _lodash2.default.join(_lodash2.default.times(_lodash2.default.size(whereStmts), function (i) {
+              return '$' + (i + 1);
+            }), ', ') + ')') + '\n          ' + '\n          let $result = select ' + selectStmt + ' from ' + (_lodash2.default.size(whereStmts) > 1 ? '$inter.intersect' : '$1') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt : '') + ' ' + (paginationStmt || '') + ';\n          commit\n          return $result\n          let $publicationName = \'' + (_this.publicationNameWithParams || '') + '\'\n          ';
+          } else {
+            statementTemp = '\n          begin \n          let $result = select ' + selectStmt + ' from (' + _lodash2.default.first(whereStmts).substring(14, _lodash2.default.size(_lodash2.default.first(whereStmts)) - 1) + ' ' + (whereSlowAddition ? ' ' + (hasRootParams ? ' AND ' : ' WHERE ') + ' ' + whereSlowAddition + ' ' : '') + ' ' + (orderByStmt ? 'ORDER BY ' + orderByStmt + ' ' : '') + ' ' + (paginationStmt || '') + (hasRootParams ? ')' : '') + ';\n          commit\n          return $result\n          let $publicationName = \'' + (_this.publicationNameWithParams || '') + '\'\n          ';
+          }
 
           _lodash2.default.map(_this.tempParams, function (value, property) {
             statementTemp = _lodash2.default.replace(statementTemp, new RegExp(':goldmine' + property, 'g'), typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value));
           });
-
           statements.push(statementTemp);
         }
       });
@@ -114,17 +125,76 @@ var OrientDBQueryBuilder = function () {
       };
     }
   }, {
+    key: 'createSlowWheres',
+    value: function createSlowWheres(extend) {
+      var extendFields = this.buildWhereExtends(_lodash2.default.drop(extend), '');
+      return extendFields.whereStmt;
+    }
+  }, {
+    key: 'buildWhereExtends',
+    value: function buildWhereExtends(extend, parent) {
+      var _this2 = this;
+
+      // select statement
+      var whereStmt = '';
+      _lodash2.default.map(extend, function (e) {
+        var tempWhereStmt = _this2.buildWhereStmt(e, parent);
+        if (e.extend) {
+          var extendFields = _this2.buildWhereExtends(e.extend, (parent ? parent + '.' : '') + _this2.buildEdge(e.relation, e.direction));
+          if (_lodash2.default.size(whereStmt) !== 0) {
+            if (_lodash2.default.size(extendFields.whereStmt) !== 0) {
+              whereStmt += ' AND ' + extendFields.whereStmt;
+            }
+          } else {
+            whereStmt = extendFields.whereStmt;
+          }
+        }
+        if (_lodash2.default.size(whereStmt) !== 0) {
+          if (_lodash2.default.size(tempWhereStmt) !== 0) {
+            whereStmt += ' AND ' + tempWhereStmt;
+          }
+        } else {
+          whereStmt = tempWhereStmt;
+        }
+      });
+
+      return {
+        whereStmt: whereStmt
+      };
+    }
+  }, {
+    key: 'buildWhereStmt',
+    value: function buildWhereStmt(template, parent) {
+      var _this3 = this;
+
+      var edge = '';
+      if (template.target !== undefined) {
+        edge = (parent ? parent + '.' : '') + '' + this.buildEdge(template.relation, template.direction);
+      }
+      var res = '';
+      if (_lodash2.default.isArray(template.params)) {
+        _lodash2.default.forEach(template.params, function (param, key) {
+          res += _this3.buildObject(param, edge) + (_lodash2.default.size(template.params) - 1 > key ? ' OR' : '');
+        });
+      } else if (_lodash2.default.isObject(template.params)) {
+        res = this.buildObject(template.params, edge);
+      } else if (typeof template.params === 'string') {
+        res += this.buildPropertyValuePair('_id', template.params, '=', edge);
+      }
+      return res;
+    }
+  }, {
     key: 'createWherePaths',
     value: function createWherePaths(template) {
-      var _this2 = this;
+      var _this4 = this;
 
       var paths = [];
       var ownParams = '';
       var optionalPaths = [];
       var relationString = '';
       if (template.extend && template.extend instanceof Array && _lodash2.default.size(template.extend) > 0) {
-        optionalPaths = _lodash2.default.flatten(_lodash2.default.filter(_lodash2.default.map(template.extend, function (ext) {
-          return _this2.createWherePaths(ext);
+        optionalPaths = _lodash2.default.flatten(_lodash2.default.filter(_lodash2.default.map(template.new ? _lodash2.default.first(_lodash2.default.chunk(template.extend)) : template.extend, function (ext) {
+          return _this4.createWherePaths(ext);
         }), function (r) {
           return r !== null;
         }));
@@ -138,31 +208,31 @@ var OrientDBQueryBuilder = function () {
       }
       if (_lodash2.default.size(optionalPaths) > 0) {
         return _lodash2.default.map(optionalPaths, function (path) {
-          return 'select ' + (relationString !== '' ? relationString : '') + ' from ( ' + path + ' ) ' + (ownParams !== '' ? 'WHERE' + ownParams : '');
+          return 'select ' + (relationString !== '' ? relationString : '') + ' from ( ' + path + ' )   ' + (ownParams !== '' ? 'WHERE ' + ownParams : '');
         });
       } else if (ownParams !== '' || !template.relation) {
-        return ['select ' + (relationString !== '' ? relationString : '') + '  from `' + template.collection + '` ' + (ownParams !== '' ? 'WHERE' + ownParams : '')];
+        return ['select ' + (relationString !== '' ? relationString : '') + '  from `' + template.collection + '`   ' + (ownParams !== '' ? 'WHERE ' + ownParams : '')];
       }
       return null;
     }
   }, {
     key: 'buildExtends',
-    value: function buildExtends(extend, parent, or) {
-      var _this3 = this;
+    value: function buildExtends(extend, parent) {
+      var _this5 = this;
 
       // select statement
       var selectStmt = '';
       _lodash2.default.map(extend, function (e) {
         if (e instanceof Array) {
           _lodash2.default.map(e, function (ext) {
-            var extendFields = _this3.buildExtends([ext], parent, true);
+            var extendFields = _this5.buildExtends([ext], parent, true);
             selectStmt += (extendFields.selectStmt ? ' ' + (_lodash2.default.size(_lodash2.default.trim(selectStmt)) > 0 ? ', ' : '') + ' ' + extendFields.selectStmt : '') + ' ';
           });
         } else {
-          var buildSelect = _this3.buildSelectStmt(e, parent);
+          var buildSelect = _this5.buildSelectStmt(e, parent);
           selectStmt += '' + (_lodash2.default.size(_lodash2.default.trim(selectStmt)) !== 0 && _lodash2.default.size(_lodash2.default.trim(buildSelect)) !== 0 ? ', ' : '') + buildSelect;
           if (e.extend) {
-            var extendFields = _this3.buildExtends(e.extend, parent + ('both("' + e.relation + '").'));
+            var extendFields = _this5.buildExtends(e.extend, parent + ('both("' + e.relation + '").'));
             selectStmt += '' + (_lodash2.default.size(_lodash2.default.trim(selectStmt)) !== 0 && _lodash2.default.size(_lodash2.default.trim(extendFields.selectStmt)) !== 0 ? ', ' : '') + extendFields.selectStmt;
           }
         }
@@ -181,7 +251,7 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildSelectStmt',
     value: function buildSelectStmt(template, parent) {
-      var _this4 = this;
+      var _this6 = this;
 
       var res = '';
       //extends
@@ -201,7 +271,7 @@ var OrientDBQueryBuilder = function () {
         }
         if (template.edgeFields) {
           _lodash2.default.forEach(template.edgeFields, function (field) {
-            res += (template.fields === null ? '' : ', ') + ' ' + parent + _this4.buildDirection(template.direction) + 'E(\'' + template.relation + '\').' + field + ' AS `' + _lodash2.default.replace(template.target, '.', '§') + '\xA7' + field + '`';
+            res += (template.fields === null ? '' : ', ') + ' ' + parent + _this6.buildDirection(template.direction) + 'E(\'' + template.relation + '\').' + field + ' AS `' + _lodash2.default.replace(template.target, '.', '§') + '\xA7' + field + '`';
           });
         }
         // main class subscribed on
@@ -226,12 +296,12 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildObject',
     value: function buildObject(paramsObject, edge) {
-      var _this5 = this;
+      var _this7 = this;
 
       var objectRes = '(';
       var counter = 0;
       _lodash2.default.forEach(paramsObject, function (value, property) {
-        objectRes += _this5.buildProperty(value, property, edge) + (_lodash2.default.size(paramsObject) - 1 > counter ? ' AND' : ' )');
+        objectRes += _this7.buildProperty(value, property, edge) + (_lodash2.default.size(paramsObject) - 1 > counter ? ' AND' : ' )');
         counter++;
       });
       return objectRes;
@@ -239,12 +309,12 @@ var OrientDBQueryBuilder = function () {
   }, {
     key: 'buildProperty',
     value: function buildProperty(value, property, edge) {
-      var _this6 = this;
+      var _this8 = this;
 
       if (value instanceof Array) {
         var res = '(';
         _lodash2.default.forEach(value, function (v, i) {
-          res += _this6.buildPropertyObject(property, v, edge) + (_lodash2.default.size(value) - 1 > i ? ' OR' : ' )');
+          res += _this8.buildPropertyObject(property, v, edge) + (_lodash2.default.size(value) - 1 > i ? ' OR' : ' )');
         });
         return res;
       }

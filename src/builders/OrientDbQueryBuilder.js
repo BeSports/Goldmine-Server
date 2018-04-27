@@ -44,6 +44,7 @@ export default class OrientDBQueryBuilder {
         let whereStmts = null;
         let orderByStmt = null;
         let paginationStmt = null;
+        let whereSlowAddition = '';
 
         // TOP LEVEL
         // select statement
@@ -66,10 +67,18 @@ export default class OrientDBQueryBuilder {
               ? ', '
               : ' '
           } ${extendFields.selectStmt}`;
-        }
 
+          if (template.new) {
+            const extendWhereFields = this.createSlowWheres(template.extend, '');
+            whereSlowAddition = extendWhereFields;
+          }
+        }
+        let statementTemp = '';
+
+        const hasRootParams = _.has(template, 'params');
         // Add statement
-        let statementTemp = `
+        if (!template.new) {
+          statementTemp = `
           begin 
           ${/* insert the where clauses built before */ ''}
           ${_.join(
@@ -91,12 +100,28 @@ export default class OrientDBQueryBuilder {
           }
           ${/* Select the requested fields */ ''}
           let $result = select ${selectStmt} from ${
-          _.size(whereStmts) > 1 ? '$inter.intersect' : '$1'
-        } ${orderByStmt ? 'ORDER BY ' + orderByStmt : ''} ${paginationStmt ? paginationStmt : ''};
+            _.size(whereStmts) > 1 ? '$inter.intersect' : '$1'
+          } ${orderByStmt ? `ORDER BY ${orderByStmt}` : ''} ${paginationStmt || ''};
           commit
           return $result
           let $publicationName = '${this.publicationNameWithParams || ''}'
           `;
+        } else {
+          statementTemp = `
+          begin 
+          let $result = select ${selectStmt} from (${_.first(whereStmts).substring(
+            14,
+            _.size(_.first(whereStmts)) - 1,
+          )} ${
+            whereSlowAddition ? ` ${hasRootParams ? ' AND ' : ' WHERE '} ${whereSlowAddition} ` : ''
+          } ${orderByStmt ? `ORDER BY ${orderByStmt} ` : ''} ${paginationStmt || ''}${
+            hasRootParams ? ')' : ''
+          };
+          commit
+          return $result
+          let $publicationName = '${this.publicationNameWithParams || ''}'
+          `;
+        }
 
         _.map(this.tempParams, function(value, property) {
           statementTemp = _.replace(
@@ -105,7 +130,6 @@ export default class OrientDBQueryBuilder {
             typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value),
           );
         });
-
         statements.push(statementTemp);
       }
     });
@@ -117,6 +141,62 @@ export default class OrientDBQueryBuilder {
     };
   }
 
+  createSlowWheres(extend) {
+    const extendFields = this.buildWhereExtends(_.drop(extend), '');
+    return extendFields.whereStmt;
+  }
+
+  buildWhereExtends(extend, parent) {
+    // select statement
+    let whereStmt = '';
+    _.map(extend, e => {
+      const tempWhereStmt = this.buildWhereStmt(e, parent);
+      if (e.extend) {
+        const extendFields = this.buildWhereExtends(
+          e.extend,
+          (parent ? parent + '.' : '') + this.buildEdge(e.relation, e.direction),
+        );
+        if (_.size(whereStmt) !== 0) {
+          if (_.size(extendFields.whereStmt) !== 0) {
+            whereStmt += ` AND ${extendFields.whereStmt}`;
+          }
+        } else {
+          whereStmt = extendFields.whereStmt;
+        }
+      }
+      if (_.size(whereStmt) !== 0) {
+        if (_.size(tempWhereStmt) !== 0) {
+          whereStmt += ` AND ${tempWhereStmt}`;
+        }
+      } else {
+        whereStmt = tempWhereStmt;
+      }
+    });
+
+    return {
+      whereStmt,
+    };
+  }
+
+  buildWhereStmt(template, parent) {
+    let edge = '';
+    if (template.target !== undefined) {
+      edge =
+        (parent ? parent + '.' : '') + '' + this.buildEdge(template.relation, template.direction);
+    }
+    let res = '';
+    if (_.isArray(template.params)) {
+      _.forEach(template.params, (param, key) => {
+        res += this.buildObject(param, edge) + (_.size(template.params) - 1 > key ? ' OR' : '');
+      });
+    } else if (_.isObject(template.params)) {
+      res = this.buildObject(template.params, edge);
+    } else if (typeof template.params === 'string') {
+      res += this.buildPropertyValuePair('_id', template.params, '=', edge);
+    }
+    return res;
+  }
+
   createWherePaths(template) {
     let paths = [];
     let ownParams = '';
@@ -125,7 +205,7 @@ export default class OrientDBQueryBuilder {
     if (template.extend && template.extend instanceof Array && _.size(template.extend) > 0) {
       optionalPaths = _.flatten(
         _.filter(
-          _.map(template.extend, ext => {
+          _.map(template.new ? _.first(_.chunk(template.extend)) : template.extend, ext => {
             return this.createWherePaths(ext);
           }),
           r => {
@@ -145,21 +225,21 @@ export default class OrientDBQueryBuilder {
     }
     if (_.size(optionalPaths) > 0) {
       return _.map(optionalPaths, path => {
-        return `select ${relationString !== '' ? relationString : ''} from ( ${path} ) ${
-          ownParams !== '' ? 'WHERE' + ownParams : ''
+        return `select ${relationString !== '' ? relationString : ''} from ( ${path} )   ${
+          ownParams !== '' ? 'WHERE ' + ownParams : ''
         }`;
       });
     } else if (ownParams !== '' || !template.relation) {
       return [
-        `select ${relationString !== '' ? relationString : ''}  from \`${template.collection}\` ${
-          ownParams !== '' ? 'WHERE' + ownParams : ''
+        `select ${relationString !== '' ? relationString : ''}  from \`${template.collection}\`   ${
+          ownParams !== '' ? 'WHERE ' + ownParams : ''
         }`,
       ];
     }
     return null;
   }
 
-  buildExtends(extend, parent, or) {
+  buildExtends(extend, parent) {
     // select statement
     let selectStmt = '';
     _.map(extend, e => {
