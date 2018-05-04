@@ -73,7 +73,9 @@ var searchForMatchingRids = function searchForMatchingRids(rooms, insertedObject
   } else if (isUpdate) {
     var ridToSearchFor = (0, _helperFunctions.extractRid)(insertedObject);
     return _lodash2.default.filter(rooms, function (room) {
-      return _lodash2.default.includes(room.cache, ridToSearchFor);
+      return _lodash2.default.includes(room.cache, ridToSearchFor) || _lodash2.default.find(room.templates, function (template) {
+        return _lodash2.default.has(template, 'limit') && _lodash2.default.has(template, 'orderBy') && !_lodash2.default.has(template, 'skipOrder');
+      });
     });
   }
   return [];
@@ -165,10 +167,14 @@ var liveQuery = function () {
 
               var roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res, true);
 
-              var roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(roomsWithMatchingRids, res.content['@class'], _lodash2.default.includes(res.content['@class'], '_'));
+              var roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(io.sockets.adapter.rooms, res.content['@class'], _lodash2.default.includes(res.content['@class'], '_'));
+              //
+              // console.log({
+              //   size: _.size(roomsWithShallowTemplatesForInsert),
+              //   deepTemplates: _.map(roomsWithShallowTemplatesForInsert, 'room.publicationNameWithParams'),
+              // });
 
               var roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(roomsWithShallowTemplatesForInsert, res.content['@class'], _lodash2.default.includes(res.content['@class'], '_'), res);
-
               // console.log({
               //   size: _.size(roomsWithDeepTemplatesForInsert),
               //   deepTemplates: _.map(roomsWithDeepTemplatesForInsert, 'room.publicationNameWithParams'),

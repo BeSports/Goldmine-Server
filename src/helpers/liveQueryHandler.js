@@ -88,7 +88,14 @@ const searchForMatchingRids = (rooms, insertedObject, isUpdate) => {
   } else if (isUpdate) {
     const ridToSearchFor = extractRid(insertedObject);
     return _.filter(rooms, room => {
-      return _.includes(room.cache, ridToSearchFor);
+      return (
+        _.includes(room.cache, ridToSearchFor) ||
+        _.find(room.templates, template => {
+          return (
+            _.has(template, 'limit') && _.has(template, 'orderBy') && !_.has(template, 'skipOrder')
+          );
+        })
+      );
     });
   }
   return [];
@@ -198,10 +205,15 @@ const liveQuery = async function(io, typer, shouldLog) {
       const roomsWithMatchingRids = searchForMatchingRids(io.sockets.adapter.rooms, res, true);
 
       let roomsWithShallowTemplatesForInsert = shallowSearchForMatchingRooms(
-        roomsWithMatchingRids,
+        io.sockets.adapter.rooms,
         res.content['@class'],
         _.includes(res.content['@class'], '_'),
       );
+      //
+      // console.log({
+      //   size: _.size(roomsWithShallowTemplatesForInsert),
+      //   deepTemplates: _.map(roomsWithShallowTemplatesForInsert, 'room.publicationNameWithParams'),
+      // });
 
       let roomsWithDeepTemplatesForInsert = deepSearchForMatchingRooms(
         roomsWithShallowTemplatesForInsert,
@@ -209,7 +221,6 @@ const liveQuery = async function(io, typer, shouldLog) {
         _.includes(res.content['@class'], '_'),
         res,
       );
-
       // console.log({
       //   size: _.size(roomsWithDeepTemplatesForInsert),
       //   deepTemplates: _.map(roomsWithDeepTemplatesForInsert, 'room.publicationNameWithParams'),
