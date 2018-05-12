@@ -395,4 +395,36 @@ const closeAll = async () => {
   process.exit(0);
 };
 
-module.exports = { init, closeAll };
+const optimize = async publication => {
+  if (_.isArray(publication)) {
+    console.log('NO ARRAYS ALLOWED: Only optimize one publication object at once please');
+  } else {
+    const extendsAmount = _.size(publication.extend);
+    const builder = new QueryBuilder(publication);
+    const wherePaths = builder.createWherePaths(publication);
+    setTimeout(async () => {
+      if (!global.db) {
+        console.log('please check database connection');
+      } else {
+        const solutions = await Promise.all(
+          _.map(wherePaths, async wherePath => {
+            _.map(builder.tempParams, async (value, property) => {
+              wherePath = _.replace(
+                wherePath,
+                new RegExp(':goldmine' + property, 'g'),
+                typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value),
+              );
+            });
+            return {
+              query: _.size(await global.db.query(`${wherePath}`)),
+              path: wherePath,
+            };
+          }),
+        );
+        console.log(solutions);
+      }
+    }, 5000);
+  }
+};
+
+module.exports = { init, closeAll, optimize };

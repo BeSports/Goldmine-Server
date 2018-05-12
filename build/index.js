@@ -500,4 +500,114 @@ var closeAll = function () {
   };
 }();
 
-module.exports = { init: init, closeAll: closeAll };
+var optimize = function () {
+  var _ref5 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee8(publication) {
+    var extendsAmount, builder, wherePaths;
+    return _regenerator2.default.wrap(function _callee8$(_context8) {
+      while (1) {
+        switch (_context8.prev = _context8.next) {
+          case 0:
+            if (_lodash2.default.isArray(publication)) {
+              console.log('NO ARRAYS ALLOWED: Only optimize one publication object at once please');
+            } else {
+              extendsAmount = _lodash2.default.size(publication.extend);
+              builder = new _OrientDbQueryBuilder2.default(publication);
+              wherePaths = builder.createWherePaths(publication);
+
+              setTimeout((0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee7() {
+                var solutions;
+                return _regenerator2.default.wrap(function _callee7$(_context7) {
+                  while (1) {
+                    switch (_context7.prev = _context7.next) {
+                      case 0:
+                        if (global.db) {
+                          _context7.next = 4;
+                          break;
+                        }
+
+                        console.log('please check database connection');
+                        _context7.next = 8;
+                        break;
+
+                      case 4:
+                        _context7.next = 6;
+                        return Promise.all(_lodash2.default.map(wherePaths, function () {
+                          var _ref7 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee6(wherePath) {
+                            return _regenerator2.default.wrap(function _callee6$(_context6) {
+                              while (1) {
+                                switch (_context6.prev = _context6.next) {
+                                  case 0:
+                                    _lodash2.default.map(builder.tempParams, function () {
+                                      var _ref8 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee5(value, property) {
+                                        return _regenerator2.default.wrap(function _callee5$(_context5) {
+                                          while (1) {
+                                            switch (_context5.prev = _context5.next) {
+                                              case 0:
+                                                wherePath = _lodash2.default.replace(wherePath, new RegExp(':goldmine' + property, 'g'), typeof value === 'string' ? "'" + value + "'" : JSON.stringify(value));
+
+                                              case 1:
+                                              case 'end':
+                                                return _context5.stop();
+                                            }
+                                          }
+                                        }, _callee5, undefined);
+                                      }));
+
+                                      return function (_x7, _x8) {
+                                        return _ref8.apply(this, arguments);
+                                      };
+                                    }());
+                                    _context6.t0 = _lodash2.default;
+                                    _context6.next = 4;
+                                    return global.db.query('' + wherePath);
+
+                                  case 4:
+                                    _context6.t1 = _context6.sent;
+                                    _context6.t2 = _context6.t0.size.call(_context6.t0, _context6.t1);
+                                    _context6.t3 = wherePath;
+                                    return _context6.abrupt('return', {
+                                      query: _context6.t2,
+                                      path: _context6.t3
+                                    });
+
+                                  case 8:
+                                  case 'end':
+                                    return _context6.stop();
+                                }
+                              }
+                            }, _callee6, undefined);
+                          }));
+
+                          return function (_x6) {
+                            return _ref7.apply(this, arguments);
+                          };
+                        }()));
+
+                      case 6:
+                        solutions = _context7.sent;
+
+                        console.log(solutions);
+
+                      case 8:
+                      case 'end':
+                        return _context7.stop();
+                    }
+                  }
+                }, _callee7, undefined);
+              })), 5000);
+            }
+
+          case 1:
+          case 'end':
+            return _context8.stop();
+        }
+      }
+    }, _callee8, undefined);
+  }));
+
+  return function optimize(_x5) {
+    return _ref5.apply(this, arguments);
+  };
+}();
+
+module.exports = { init: init, closeAll: closeAll, optimize: optimize };
