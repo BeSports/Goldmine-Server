@@ -10,6 +10,7 @@ exports.default = function (config) {
   var db = server.use(_lodash2.default.merge({ name: config.databaseName }, _lodash2.default.pick(config.server, ['username', 'password'])));
   global.db = db;
   db.on('endQuery', function (obj) {
+    console.log(obj.input.query, obj.perf.query);
     if (obj.input.query.indexOf('let $publicationName =') > 0) {
       global.counter.durations.push({
         publicationName: _lodash2.default.first(_lodash2.default.split(_lodash2.default.last(_lodash2.default.split(obj.input.query, 'let $publicationName = \'')), '?')),

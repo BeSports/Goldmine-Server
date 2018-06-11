@@ -29,6 +29,7 @@ export default function(config) {
   );
   global.db = db;
   db.on('endQuery', function(obj) {
+    console.log(obj.input.query, obj.perf.query);
     if (obj.input.query.indexOf(`let $publicationName =`) > 0) {
       global.counter.durations.push({
         publicationName: _.first(
