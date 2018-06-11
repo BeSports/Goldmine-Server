@@ -114,9 +114,9 @@ export default class OrientDBQueryBuilder {
             _.size(_.first(whereStmts)) - 1,
           )} ${
             whereSlowAddition ? ` ${hasRootParams ? ' AND ' : ' WHERE '} ${whereSlowAddition} ` : ''
-          } ${orderByStmt ? `ORDER BY ${orderByStmt} ` : ''} ${paginationStmt || ''}${
-            hasRootParams ? ')' : ''
-          };
+          } ${hasRootParams ? ')' : ''} ${
+            orderByStmt ? `ORDER BY ${orderByStmt} ` : ''
+          } ${paginationStmt || ''}; 
           commit
           return $result
           let $publicationName = '${this.publicationNameWithParams || ''}'
