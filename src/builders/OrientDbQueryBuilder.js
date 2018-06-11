@@ -343,6 +343,7 @@ export default class OrientDBQueryBuilder {
         (_.size(paramsObject) - 1 > counter ? ' AND' : ' )');
       counter++;
     });
+    objectRes += ')';
     return objectRes;
   }
 

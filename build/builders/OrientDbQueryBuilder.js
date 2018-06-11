@@ -304,6 +304,7 @@ var OrientDBQueryBuilder = function () {
         objectRes += _this7.buildProperty(value, property, edge) + (_lodash2.default.size(paramsObject) - 1 > counter ? ' AND' : ' )');
         counter++;
       });
+      objectRes += ')';
       return objectRes;
     }
   }, {
